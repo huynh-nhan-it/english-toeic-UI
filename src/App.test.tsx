@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import App from './App'
 import { STORAGE_KEY } from './lib/storage'
@@ -88,17 +88,18 @@ describe('TOEIC Progress SPA', () => {
 
   test('debounces notebook saves to localStorage', async () => {
     vi.useFakeTimers()
-    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
     render(<App />)
 
-    await user.type(screen.getByLabelText('Business Vocabulary'), 'contract')
+    fireEvent.change(screen.getByLabelText('Business Vocabulary'), {
+      target: { value: 'contract' },
+    })
 
     expect(localStorage.getItem(STORAGE_KEY)).toBeNull()
-    vi.advanceTimersByTime(500)
-
-    await waitFor(() => {
-      expect(JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}').notes.businessVocabulary).toBe('contract')
+    await act(async () => {
+      vi.advanceTimersByTime(500)
     })
+
+    expect(JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}').notes.businessVocabulary).toBe('contract')
   })
 
   test('exports the current progress as JSON backup', async () => {
