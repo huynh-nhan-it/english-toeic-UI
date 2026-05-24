@@ -8,9 +8,9 @@ type AnswerSheetProps = {
 }
 
 export const AnswerSheet = memo(function AnswerSheet({ answers, onAnswerChange }: AnswerSheetProps) {
-  const inputRefs = useRef<Record<number, HTMLInputElement | null>>({})
+  const inputRefs = useRef<Record<number, HTMLSelectElement | null>>({})
 
-  const registerInput = useCallback((questionNumber: number, node: HTMLInputElement | null) => {
+  const registerInput = useCallback((questionNumber: number, node: HTMLSelectElement | null) => {
     inputRefs.current[questionNumber] = node
   }, [])
 

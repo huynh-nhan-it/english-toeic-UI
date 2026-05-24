@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest'
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import App from './App'
 import { STORAGE_KEY } from './lib/storage'
@@ -48,7 +48,14 @@ describe('TOEIC Progress SPA', () => {
     const user = userEvent.setup()
     render(<App />)
 
-    await user.type(screen.getByLabelText('Question 1'), 'a')
+    const firstQuestion = screen.getByLabelText('Question 1')
+    expect(firstQuestion).toHaveDisplayValue('Select')
+    expect(within(firstQuestion).getByRole('option', { name: 'A' })).toBeInTheDocument()
+    expect(within(firstQuestion).getByRole('option', { name: 'B' })).toBeInTheDocument()
+    expect(within(firstQuestion).getByRole('option', { name: 'C' })).toBeInTheDocument()
+    expect(within(firstQuestion).getByRole('option', { name: 'D' })).toBeInTheDocument()
+
+    await user.type(firstQuestion, 'a')
 
     expect(screen.getByLabelText('Question 1')).toHaveValue('A')
     await waitFor(() => expect(screen.getByLabelText('Question 2')).toHaveFocus())
@@ -173,11 +180,28 @@ describe('TOEIC Progress SPA', () => {
 
     await user.type(screen.getByLabelText('Vocabulary Search'), 'cont')
 
-    expect(await screen.findByRole('button', { name: /add contract renewal/i })).toBeInTheDocument()
-    expect(await screen.findByRole('button', { name: /^add contract$/i })).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: /contract renewal/i })).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: /^contract$/i })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /add contract/i })).not.toBeInTheDocument()
     expect(fetch).toHaveBeenLastCalledWith('https://api.datamuse.com/sug?s=cont&max=8', {
       signal: expect.any(AbortSignal),
     })
+  })
+
+  test('suggests common TOEIC vocabulary phrases from partial phrase search', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => [],
+      }),
+    )
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.type(screen.getByLabelText('Vocabulary Search'), 'meet the req')
+
+    expect(await screen.findByRole('button', { name: 'meet the requirements' })).toBeInTheDocument()
   })
 
   test('adds a selected vocabulary suggestion to the vocabulary notes', async () => {
@@ -192,7 +216,7 @@ describe('TOEIC Progress SPA', () => {
     render(<App />)
 
     await user.type(screen.getByLabelText('Vocabulary Search'), 'inv')
-    await user.click(await screen.findByRole('button', { name: /add invoice/i }))
+    await user.click(await screen.findByRole('button', { name: /^invoice$/i }))
 
     expect(screen.getByLabelText('Business Vocabulary')).toHaveValue('invoice')
   })

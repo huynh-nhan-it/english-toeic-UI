@@ -7,7 +7,7 @@ type PartSectionProps = {
   answers: Record<number, AnswerChoice>
   onAnswerChange: (questionNumber: number, answer: AnswerChoice) => void
   onFocusQuestion: (questionNumber: number) => void
-  registerInput: (questionNumber: number, node: HTMLInputElement | null) => void
+  registerInput: (questionNumber: number, node: HTMLSelectElement | null) => void
 }
 
 export const PartSection = memo(function PartSection({

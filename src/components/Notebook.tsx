@@ -147,7 +147,7 @@ export const Notebook = memo(function Notebook({ notes, onNoteChange }: Notebook
                 onClick={() => addVocabularyWord(suggestion.word)}
                 type="button"
               >
-                Add {suggestion.word}
+                {suggestion.word}
               </button>
             ))}
           </div>
