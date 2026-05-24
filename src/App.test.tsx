@@ -52,7 +52,7 @@ describe('TOEIC Progress SPA', () => {
 
     expect(screen.getByLabelText('Question 1')).toHaveValue('A')
     await waitFor(() => expect(screen.getByLabelText('Question 2')).toHaveFocus())
-    expect(JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}').answers['1']).toBe('A')
+    expect(JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}').exams[0].answers['1']).toBe('A')
   })
 
   test('ignores invalid answer keys', async () => {
@@ -75,7 +75,7 @@ describe('TOEIC Progress SPA', () => {
     await user.keyboard('{Backspace}')
 
     expect(question).toHaveValue('')
-    expect(JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}').answers['1']).toBe('')
+    expect(JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}').exams[0].answers['1']).toBe('')
   })
 
   test('does not crash when answering question 200', async () => {
@@ -85,7 +85,7 @@ describe('TOEIC Progress SPA', () => {
     await user.type(screen.getByLabelText('Question 200'), 'd')
 
     expect(screen.getByLabelText('Question 200')).toHaveValue('D')
-    expect(JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}').answers['200']).toBe('D')
+    expect(JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}').exams[0].answers['200']).toBe('D')
   })
 
   test('debounces notebook saves to localStorage', async () => {
@@ -101,22 +101,59 @@ describe('TOEIC Progress SPA', () => {
       vi.advanceTimersByTime(500)
     })
 
-    expect(JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}').notes.businessVocabulary).toBe('contract')
+    expect(JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}').exams[0].notes.businessVocabulary).toBe(
+      'contract',
+    )
   })
 
-  test('toggles TOEIC grammar topics and saves selected options', async () => {
+  test('creates a new exam set and keeps answers isolated per set', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.type(screen.getByLabelText('Question 1'), 'a')
+    await user.click(screen.getByRole('button', { name: /new test/i }))
+
+    expect(screen.getByLabelText('Current Exam')).toHaveDisplayValue('TOEIC Test 2')
+    expect(screen.getByLabelText('Question 1')).toHaveValue('')
+
+    await user.type(screen.getByLabelText('Question 1'), 'c')
+    await user.selectOptions(screen.getByLabelText('Current Exam'), 'exam-1')
+
+    expect(screen.getByLabelText('Question 1')).toHaveValue('A')
+    expect(JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}').exams).toHaveLength(2)
+  })
+
+  test('renames the active exam set', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.clear(screen.getByLabelText('Exam Name'))
+    await user.type(screen.getByLabelText('Exam Name'), 'ETS 2024 Test 01')
+
+    expect(screen.getByLabelText('Current Exam')).toHaveDisplayValue('ETS 2024 Test 01')
+    expect(JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}').exams[0].title).toBe('ETS 2024 Test 01')
+  })
+
+  test('toggles TOEIC grammar formulas and saves selected options', async () => {
     vi.useFakeTimers()
     render(<App />)
 
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /word forms/i }))
+      fireEvent.click(screen.getByRole('button', { name: /have \+ s \+ v3/i }))
     })
     await act(async () => {
       vi.runOnlyPendingTimers()
     })
 
     const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}')
-    expect(stored.notes.selectedGrammarTopicIds).toContain('word-forms')
+    expect(stored.exams[0].notes.selectedGrammarFormulaIds).toContain('present-perfect-question')
+  })
+
+  test('shows TOEIC grammar formula examples', () => {
+    render(<App />)
+
+    expect(screen.getByText('S + have/has/had + V3')).toBeInTheDocument()
+    expect(screen.getByText(/Have you submitted the report/i)).toBeInTheDocument()
   })
 
   test('shows vocabulary suggestions from the free Datamuse API', async () => {
@@ -136,6 +173,7 @@ describe('TOEIC Progress SPA', () => {
 
     await user.type(screen.getByLabelText('Vocabulary Search'), 'cont')
 
+    expect(await screen.findByRole('button', { name: /add contract renewal/i })).toBeInTheDocument()
     expect(await screen.findByRole('button', { name: /^add contract$/i })).toBeInTheDocument()
     expect(fetch).toHaveBeenLastCalledWith('https://api.datamuse.com/sug?s=cont&max=8', {
       signal: expect.any(AbortSignal),
@@ -176,8 +214,8 @@ describe('TOEIC Progress SPA', () => {
     })
 
     const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}')
-    expect(stored.notes.activeShadowingLine).toBe(0)
-    expect(stored.notes.completedShadowingLines).toContain(0)
+    expect(stored.exams[0].notes.activeShadowingLine).toBe(0)
+    expect(stored.exams[0].notes.completedShadowingLines).toContain(0)
   })
 
   test('exports the current progress as JSON backup', async () => {

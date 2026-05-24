@@ -1,6 +1,6 @@
 import { Check, Search, Target } from 'lucide-react'
 import { memo, useCallback, useEffect, useMemo, useState } from 'react'
-import { TOEIC_GRAMMAR_TOPICS, type NoteKey, type StudyNotes } from '../lib/toeic'
+import { TOEIC_GRAMMAR_FORMULAS, TOEIC_VOCAB_PHRASES, type NoteKey, type StudyNotes } from '../lib/toeic'
 import { fetchVocabularySuggestions, type VocabularySuggestion } from '../lib/vocabularyApi'
 
 type NotebookProps = {
@@ -47,17 +47,42 @@ export const Notebook = memo(function Notebook({ notes, onNoteChange }: Notebook
     [notes.transcriptShadowing],
   )
 
-  const toggleGrammarTopic = useCallback(
-    (topicId: string) => {
-      const isSelected = notes.selectedGrammarTopicIds.includes(topicId)
+  const phraseSuggestions = useMemo(() => {
+    const query = vocabularyQuery.trim().toLowerCase()
+
+    if (query.length < 2) {
+      return []
+    }
+
+    return TOEIC_VOCAB_PHRASES.filter((phrase) => phrase.toLowerCase().includes(query)).slice(0, 6)
+  }, [vocabularyQuery])
+
+  const combinedSuggestions = useMemo(() => {
+    const seen = new Set<string>()
+    return [
+      ...phraseSuggestions.map((word) => ({ word })),
+      ...suggestions,
+    ].filter((suggestion) => {
+      const key = suggestion.word.toLowerCase()
+      if (seen.has(key)) {
+        return false
+      }
+      seen.add(key)
+      return true
+    })
+  }, [phraseSuggestions, suggestions])
+
+  const toggleGrammarFormula = useCallback(
+    (formulaId: string) => {
+      const isSelected = notes.selectedGrammarFormulaIds.includes(formulaId)
       onNoteChange(
-        'selectedGrammarTopicIds',
+        'selectedGrammarFormulaIds',
         isSelected
-          ? notes.selectedGrammarTopicIds.filter((id) => id !== topicId)
-          : [...notes.selectedGrammarTopicIds, topicId],
+          ? notes.selectedGrammarFormulaIds.filter((id) => id !== formulaId)
+          : [...notes.selectedGrammarFormulaIds, formulaId],
       )
     },
-    [notes.selectedGrammarTopicIds, onNoteChange],
+    [notes.selectedGrammarFormulaIds, onNoteChange],
   )
 
   const addVocabularyWord = useCallback(
@@ -115,7 +140,7 @@ export const Notebook = memo(function Notebook({ notes, onNoteChange }: Notebook
           </label>
           <div className="mb-3 flex min-h-9 flex-wrap gap-2">
             {isSearching ? <span className="text-xs text-zinc-500">Searching...</span> : null}
-            {suggestions.map((suggestion) => (
+            {combinedSuggestions.map((suggestion) => (
               <button
                 key={suggestion.word}
                 className="rounded border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-200 transition hover:bg-emerald-500/20"
@@ -141,22 +166,24 @@ export const Notebook = memo(function Notebook({ notes, onNoteChange }: Notebook
             <h3 className="text-sm font-semibold text-white">Grammar Traps</h3>
           </div>
           <div className="mb-3 flex flex-wrap gap-2">
-            {TOEIC_GRAMMAR_TOPICS.map((topic) => {
-              const isSelected = notes.selectedGrammarTopicIds.includes(topic.id)
+            {TOEIC_GRAMMAR_FORMULAS.map((formula) => {
+              const isSelected = notes.selectedGrammarFormulaIds.includes(formula.id)
 
               return (
                 <button
-                  key={topic.id}
+                  key={formula.id}
                   className={
                     isSelected
-                      ? 'rounded border border-sky-400 bg-sky-400 px-2.5 py-1 text-xs font-semibold text-zinc-950'
-                      : 'rounded border border-zinc-700 bg-zinc-950 px-2.5 py-1 text-xs font-medium text-zinc-300 transition hover:border-sky-400 hover:text-sky-200'
+                      ? 'rounded border border-sky-400 bg-sky-400 p-3 text-left text-zinc-950'
+                      : 'rounded border border-zinc-700 bg-zinc-950 p-3 text-left text-zinc-300 transition hover:border-sky-400 hover:text-sky-200'
                   }
-                  onClick={() => toggleGrammarTopic(topic.id)}
-                  title={topic.partFocus}
+                  onClick={() => toggleGrammarFormula(formula.id)}
+                  title={formula.partFocus}
                   type="button"
                 >
-                  {topic.label}
+                  <span className="block text-xs font-semibold">{formula.title}</span>
+                  <span className="block font-mono text-sm">{formula.formula}</span>
+                  <span className="mt-1 block text-xs opacity-80">{formula.example}</span>
                 </button>
               )
             })}

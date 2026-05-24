@@ -1,12 +1,23 @@
 import { BookOpenCheck } from 'lucide-react'
 import { AnswerSheet } from './components/AnswerSheet'
+import { ExamManager } from './components/ExamManager'
 import { ExportButton } from './components/ExportButton'
 import { Notebook } from './components/Notebook'
 import { SplitLayout } from './components/SplitLayout'
 import { useToeicProgress } from './hooks/useToeicProgress'
 
 export default function App() {
-  const { progress, notesDraft, updateAnswer, updateNote } = useToeicProgress()
+  const {
+    activeExam,
+    createNewExam,
+    exams,
+    notesDraft,
+    progress,
+    renameActiveExam,
+    selectExam,
+    updateAnswer,
+    updateNote,
+  } = useToeicProgress()
 
   return (
     <main className="min-h-screen bg-zinc-950 text-zinc-100">
@@ -21,12 +32,21 @@ export default function App() {
               <p className="text-sm text-zinc-400">Answer sheet and study notebook saved locally.</p>
             </div>
           </div>
-          <ExportButton progress={progress} />
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <ExamManager
+              activeExam={activeExam}
+              exams={exams}
+              onCreateExam={createNewExam}
+              onRenameExam={renameActiveExam}
+              onSelectExam={selectExam}
+            />
+            <ExportButton progress={progress} />
+          </div>
         </div>
       </header>
 
       <SplitLayout
-        answerSheet={<AnswerSheet answers={progress.answers} onAnswerChange={updateAnswer} />}
+        answerSheet={<AnswerSheet answers={activeExam.answers} onAnswerChange={updateAnswer} />}
         notebook={<Notebook notes={notesDraft} onNoteChange={updateNote} />}
       />
     </main>

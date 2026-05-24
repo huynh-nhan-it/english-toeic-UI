@@ -1,9 +1,18 @@
-import { createEmptyProgress, type AnswerChoice, type StudyNotes, type ToeicProgressData } from './toeic'
+import {
+  createEmptyNotes,
+  createEmptyProgress,
+  createExam,
+  createBlankAnswers,
+  type AnswerChoice,
+  type StudyNotes,
+  type ToeicExam,
+  type ToeicProgressData,
+} from './toeic'
 
 export const STORAGE_KEY = 'toeic-progress-v1'
 
 function normalizeAnswers(value: unknown): Record<number, AnswerChoice> {
-  const base = createEmptyProgress().answers
+  const base = createBlankAnswers()
 
   if (!value || typeof value !== 'object') {
     return base
@@ -33,12 +42,38 @@ export function loadProgress(): ToeicProgressData {
   }
 
   try {
-    const parsed = JSON.parse(raw) as Partial<ToeicProgressData>
+    const parsed = JSON.parse(raw) as Partial<ToeicProgressData> & {
+      answers?: unknown
+      notes?: unknown
+    }
+
+    if (parsed.version !== 2 || !Array.isArray(parsed.exams)) {
+      const migratedExam = {
+        ...createExam('exam-1', 'TOEIC Test 1'),
+        answers: normalizeAnswers(parsed.answers),
+        notes: normalizeNotes(parsed.notes),
+        updatedAt: parsed.updatedAt ?? emptyProgress.updatedAt,
+      }
+
+      return {
+        version: 2,
+        activeExamId: migratedExam.id,
+        exams: [migratedExam],
+        updatedAt: parsed.updatedAt ?? emptyProgress.updatedAt,
+      }
+    }
+
+    const exams = parsed.exams.map((exam, index) => normalizeExam(exam, index + 1))
+    const safeExams = exams.length > 0 ? exams : emptyProgress.exams
+    const activeExamId =
+      typeof parsed.activeExamId === 'string' && safeExams.some((exam) => exam.id === parsed.activeExamId)
+        ? parsed.activeExamId
+        : safeExams[0].id
 
     return {
-      version: 1,
-      answers: normalizeAnswers(parsed.answers),
-      notes: normalizeNotes(parsed.notes, emptyProgress.notes),
+      version: 2,
+      activeExamId,
+      exams: safeExams,
       updatedAt: parsed.updatedAt ?? emptyProgress.updatedAt,
     }
   } catch {
@@ -46,20 +81,44 @@ export function loadProgress(): ToeicProgressData {
   }
 }
 
-function normalizeNotes(value: unknown, fallback: StudyNotes): StudyNotes {
+function normalizeExam(value: unknown, fallbackIndex: number): ToeicExam {
+  const fallback = createExam(`exam-${fallbackIndex}`, `TOEIC Test ${fallbackIndex}`)
+
   if (!value || typeof value !== 'object') {
     return fallback
   }
 
-  const notes = value as Partial<StudyNotes>
+  const exam = value as Partial<ToeicExam>
+
+  return {
+    id: typeof exam.id === 'string' && exam.id.length > 0 ? exam.id : fallback.id,
+    title: typeof exam.title === 'string' && exam.title.trim().length > 0 ? exam.title : fallback.title,
+    answers: normalizeAnswers(exam.answers),
+    notes: normalizeNotes(exam.notes),
+    createdAt: typeof exam.createdAt === 'string' ? exam.createdAt : fallback.createdAt,
+    updatedAt: typeof exam.updatedAt === 'string' ? exam.updatedAt : fallback.updatedAt,
+  }
+}
+
+function normalizeNotes(value: unknown): StudyNotes {
+  const fallback = createEmptyNotes()
+
+  if (!value || typeof value !== 'object') {
+    return fallback
+  }
+
+  const notes = value as Partial<StudyNotes> & { selectedGrammarTopicIds?: unknown }
+  const selectedGrammarFormulaIds = Array.isArray(notes.selectedGrammarFormulaIds)
+    ? notes.selectedGrammarFormulaIds.filter((id): id is string => typeof id === 'string')
+    : Array.isArray(notes.selectedGrammarTopicIds)
+      ? notes.selectedGrammarTopicIds.filter((id): id is string => typeof id === 'string')
+      : []
 
   return {
     businessVocabulary: typeof notes.businessVocabulary === 'string' ? notes.businessVocabulary : '',
     grammarTraps: typeof notes.grammarTraps === 'string' ? notes.grammarTraps : '',
     transcriptShadowing: typeof notes.transcriptShadowing === 'string' ? notes.transcriptShadowing : '',
-    selectedGrammarTopicIds: Array.isArray(notes.selectedGrammarTopicIds)
-      ? notes.selectedGrammarTopicIds.filter((id): id is string => typeof id === 'string')
-      : [],
+    selectedGrammarFormulaIds,
     activeShadowingLine:
       typeof notes.activeShadowingLine === 'number' && Number.isInteger(notes.activeShadowingLine)
         ? notes.activeShadowingLine
