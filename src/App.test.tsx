@@ -8,6 +8,8 @@ describe('TOEIC Progress SPA', () => {
   beforeEach(() => {
     localStorage.clear()
     vi.useRealTimers()
+    vi.restoreAllMocks()
+    vi.unstubAllGlobals()
   })
 
   test('loads 200 blank answers when localStorage is empty', () => {
@@ -100,6 +102,82 @@ describe('TOEIC Progress SPA', () => {
     })
 
     expect(JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}').notes.businessVocabulary).toBe('contract')
+  })
+
+  test('toggles TOEIC grammar topics and saves selected options', async () => {
+    vi.useFakeTimers()
+    render(<App />)
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /word forms/i }))
+    })
+    await act(async () => {
+      vi.runOnlyPendingTimers()
+    })
+
+    const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}')
+    expect(stored.notes.selectedGrammarTopicIds).toContain('word-forms')
+  })
+
+  test('shows vocabulary suggestions from the free Datamuse API', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => [
+          { word: 'contract' },
+          { word: 'contractor' },
+          { word: 'contractual' },
+        ],
+      }),
+    )
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.type(screen.getByLabelText('Vocabulary Search'), 'cont')
+
+    expect(await screen.findByRole('button', { name: /^add contract$/i })).toBeInTheDocument()
+    expect(fetch).toHaveBeenLastCalledWith('https://api.datamuse.com/sug?s=cont&max=8', {
+      signal: expect.any(AbortSignal),
+    })
+  })
+
+  test('adds a selected vocabulary suggestion to the vocabulary notes', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => [{ word: 'invoice' }],
+      }),
+    )
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.type(screen.getByLabelText('Vocabulary Search'), 'inv')
+    await user.click(await screen.findByRole('button', { name: /add invoice/i }))
+
+    expect(screen.getByLabelText('Business Vocabulary')).toHaveValue('invoice')
+  })
+
+  test('splits transcript into shadowing lines and tracks completed practice lines', async () => {
+    vi.useFakeTimers()
+    render(<App />)
+
+    fireEvent.change(screen.getByLabelText('Transcript Shadowing'), {
+      target: { value: 'Welcome to the meeting.\nPlease review the agenda.' },
+    })
+
+    expect(screen.getByRole('button', { name: /practice line 1/i })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /practice line 1/i }))
+    fireEvent.click(screen.getByRole('checkbox', { name: /complete line 1/i }))
+
+    await act(async () => {
+      vi.advanceTimersByTime(500)
+    })
+
+    const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}')
+    expect(stored.notes.activeShadowingLine).toBe(0)
+    expect(stored.notes.completedShadowingLines).toContain(0)
   })
 
   test('exports the current progress as JSON backup', async () => {

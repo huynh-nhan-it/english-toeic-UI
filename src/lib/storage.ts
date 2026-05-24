@@ -1,4 +1,4 @@
-import { createEmptyProgress, type AnswerChoice, type ToeicProgressData } from './toeic'
+import { createEmptyProgress, type AnswerChoice, type StudyNotes, type ToeicProgressData } from './toeic'
 
 export const STORAGE_KEY = 'toeic-progress-v1'
 
@@ -38,15 +38,35 @@ export function loadProgress(): ToeicProgressData {
     return {
       version: 1,
       answers: normalizeAnswers(parsed.answers),
-      notes: {
-        businessVocabulary: parsed.notes?.businessVocabulary ?? '',
-        grammarTraps: parsed.notes?.grammarTraps ?? '',
-        transcriptShadowing: parsed.notes?.transcriptShadowing ?? '',
-      },
+      notes: normalizeNotes(parsed.notes, emptyProgress.notes),
       updatedAt: parsed.updatedAt ?? emptyProgress.updatedAt,
     }
   } catch {
     return emptyProgress
+  }
+}
+
+function normalizeNotes(value: unknown, fallback: StudyNotes): StudyNotes {
+  if (!value || typeof value !== 'object') {
+    return fallback
+  }
+
+  const notes = value as Partial<StudyNotes>
+
+  return {
+    businessVocabulary: typeof notes.businessVocabulary === 'string' ? notes.businessVocabulary : '',
+    grammarTraps: typeof notes.grammarTraps === 'string' ? notes.grammarTraps : '',
+    transcriptShadowing: typeof notes.transcriptShadowing === 'string' ? notes.transcriptShadowing : '',
+    selectedGrammarTopicIds: Array.isArray(notes.selectedGrammarTopicIds)
+      ? notes.selectedGrammarTopicIds.filter((id): id is string => typeof id === 'string')
+      : [],
+    activeShadowingLine:
+      typeof notes.activeShadowingLine === 'number' && Number.isInteger(notes.activeShadowingLine)
+        ? notes.activeShadowingLine
+        : null,
+    completedShadowingLines: Array.isArray(notes.completedShadowingLines)
+      ? notes.completedShadowingLines.filter((line): line is number => Number.isInteger(line))
+      : [],
   }
 }
 

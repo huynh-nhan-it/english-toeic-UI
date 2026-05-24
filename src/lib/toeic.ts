@@ -1,11 +1,20 @@
 export type AnswerChoice = '' | 'A' | 'B' | 'C' | 'D'
 
-export type NoteKey = 'businessVocabulary' | 'grammarTraps' | 'transcriptShadowing'
+export type StudyNotes = {
+  businessVocabulary: string
+  grammarTraps: string
+  transcriptShadowing: string
+  selectedGrammarTopicIds: string[]
+  activeShadowingLine: number | null
+  completedShadowingLines: number[]
+}
+
+export type NoteKey = keyof StudyNotes
 
 export type ToeicProgressData = {
   version: 1
   answers: Record<number, AnswerChoice>
-  notes: Record<NoteKey, string>
+  notes: StudyNotes
   updatedAt: string
 }
 
@@ -33,6 +42,37 @@ export const PARTS: ToeicPart[] = [
 
 export const ANSWER_CHOICES = ['A', 'B', 'C', 'D'] as const
 
+export type ToeicGrammarTopic = {
+  id: string
+  label: string
+  partFocus: string
+}
+
+export const TOEIC_GRAMMAR_TOPICS: ToeicGrammarTopic[] = [
+  { id: 'tenses', label: 'Tenses', partFocus: 'Part 5-6' },
+  { id: 'subject-verb-agreement', label: 'Subject-Verb Agreement', partFocus: 'Part 5' },
+  { id: 'passive-voice', label: 'Passive Voice', partFocus: 'Part 5-6' },
+  { id: 'gerund-infinitive', label: 'Gerund vs Infinitive', partFocus: 'Part 5' },
+  { id: 'participles', label: 'Participles', partFocus: 'Part 5-6' },
+  { id: 'relative-clauses', label: 'Relative Clauses', partFocus: 'Part 5-7' },
+  { id: 'reduced-clauses', label: 'Reduced Clauses', partFocus: 'Part 5-7' },
+  { id: 'conditionals', label: 'Conditionals', partFocus: 'Part 5-6' },
+  { id: 'comparisons', label: 'Comparisons', partFocus: 'Part 5' },
+  { id: 'prepositions', label: 'Prepositions', partFocus: 'Part 5-7' },
+  { id: 'conjunctions', label: 'Conjunctions', partFocus: 'Part 5-6' },
+  { id: 'word-forms', label: 'Word Forms', partFocus: 'Part 5' },
+  { id: 'pronouns', label: 'Pronouns', partFocus: 'Part 5-6' },
+  { id: 'articles-determiners', label: 'Articles & Determiners', partFocus: 'Part 5' },
+  { id: 'quantifiers', label: 'Quantifiers', partFocus: 'Part 5-6' },
+  { id: 'parallel-structure', label: 'Parallel Structure', partFocus: 'Part 5-7' },
+  { id: 'inversion', label: 'Inversion', partFocus: 'Part 5' },
+  { id: 'modal-verbs', label: 'Modal Verbs', partFocus: 'Part 5-6' },
+  { id: 'causative-verbs', label: 'Causative Verbs', partFocus: 'Part 5' },
+  { id: 'noun-clauses', label: 'Noun Clauses', partFocus: 'Part 5-7' },
+  { id: 'adverb-clauses', label: 'Adverb Clauses', partFocus: 'Part 5-7' },
+  { id: 'toeic-traps', label: 'Common TOEIC Traps', partFocus: 'All parts' },
+]
+
 export function createBlankAnswers(): Record<number, AnswerChoice> {
   return Object.fromEntries(
     Array.from({ length: 200 }, (_, index) => [index + 1, ''] as const),
@@ -47,6 +87,9 @@ export function createEmptyProgress(): ToeicProgressData {
       businessVocabulary: '',
       grammarTraps: '',
       transcriptShadowing: '',
+      selectedGrammarTopicIds: [],
+      activeShadowingLine: null,
+      completedShadowingLines: [],
     },
     updatedAt: new Date().toISOString(),
   }
