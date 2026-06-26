@@ -1,10 +1,23 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap');
+
 @import "tailwindcss";
 
+/* Configure class-based dark mode for Tailwind CSS v4 */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
-  color-scheme: dark;
+  color-scheme: light;
   font-family:
-    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  background: #09090b;
+    Outfit, Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: #f9f9fc; /* Pearl Alabaster */
+  color: #0a0a16; /* Obsidian slate */
+  transition: background-color 0.4s ease, color 0.4s ease, border-color 0.4s ease;
+}
+
+:root.dark {
+  color-scheme: dark;
+  background: #05050a; /* Amethyst Nebula - Midnight Obsidian */
+  color: #f1f2f6; /* Frosty white */
 }
 
 * {
@@ -19,6 +32,200 @@ body {
 
 button,
 input,
-textarea {
+textarea,
+select {
   font: inherit;
 }
+
+/* Modern Grid Background overlay for tech feel */
+.grid-bg {
+  background-image: radial-gradient(circle at 1px 1px, rgba(99, 102, 241, 0.05) 1px, transparent 0);
+  background-size: 20px 20px;
+}
+
+.dark .grid-bg {
+  background-image: radial-gradient(circle at 1px 1px, rgba(99, 102, 241, 0.08) 1px, transparent 0);
+  background-size: 20px 20px;
+}
+
+/* Amethyst Aurora Background Radial Glow (Dark Mode only) */
+.aurora-bg {
+  position: absolute;
+  top: -10%;
+  left: 30%;
+  width: 50vw;
+  height: 50vw;
+  background: radial-gradient(circle, rgba(124, 58, 237, 0.06) 0%, rgba(99, 102, 241, 0.03) 50%, transparent 100%);
+  filter: blur(80px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Glassmorphism panels */
+.glass-panel {
+  background-color: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.02);
+}
+
+.dark .glass-panel {
+  background-color: rgba(11, 12, 22, 0.6);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(99, 102, 241, 0.08);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+}
+
+/* Elastic spring transitions — only composite properties to avoid layout jank */
+.spring-transition {
+  transition:
+    background-color 0.2s cubic-bezier(0.25, 0.8, 0.25, 1),
+    color 0.2s cubic-bezier(0.25, 0.8, 0.25, 1),
+    border-color 0.2s cubic-bezier(0.25, 0.8, 0.25, 1),
+    box-shadow 0.2s cubic-bezier(0.25, 0.8, 0.25, 1),
+    opacity 0.2s cubic-bezier(0.25, 0.8, 0.25, 1),
+    transform 0.15s cubic-bezier(0.25, 0.8, 0.25, 1);
+  will-change: transform;
+}
+
+/* Active choice glow */
+.choice-glow-active {
+  box-shadow: 0 0 16px rgba(99, 102, 241, 0.35);
+  drop-shadow: 0 0 8px rgba(99, 102, 241, 0.2);
+}
+
+.dark .choice-glow-active {
+  box-shadow: 0 0 20px rgba(139, 92, 246, 0.45);
+  drop-shadow: 0 0 10px rgba(139, 92, 246, 0.3);
+}
+
+/* 3D Flashcard Animation Styles */
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+.preserve-3d {
+  transform-style: preserve-3d;
+}
+
+.backface-hidden {
+  backface-visibility: hidden;
+}
+
+.rotate-y-180 {
+  transform: rotateY(180deg);
+}
+
+/* Custom Scrollbar for modern aesthetics */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(99, 102, 241, 0.1);
+  border-radius: 9999px;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(99, 102, 241, 0.15);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(99, 102, 241, 0.3);
+}
+
+/* Glowing Border Beam keyframes */
+@keyframes border-beam {
+  0%, 100% {
+    offset-distance: 0%;
+  }
+  50% {
+    offset-distance: 100%;
+  }
+}
+
+.border-beam-active {
+  position: relative;
+}
+
+.border-beam-active::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(to right, #a855f7, #6366f1, #06b6d4);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  opacity: 0.85;
+}
+
+/* Sleek Input Styles for selects, inputs, and textareas */
+.sleek-input {
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dark .sleek-input {
+  box-shadow: inset 0 1.5px 3px rgba(0, 0, 0, 0.4);
+}
+
+/* Base button transitions and aesthetics */
+.btn-primary {
+  background-color: #0f172a; /* Slate 900 */
+  color: #ffffff;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dark .btn-primary {
+  background-color: #f4f4f5; /* Zinc 100 */
+  color: #09090b; /* Zinc 950 */
+}
+
+.btn-primary:hover {
+  background-color: #1e293b; /* Slate 800 */
+  transform: translateY(-1px);
+}
+
+.dark .btn-primary:hover {
+  background-color: #e4e4e7; /* Zinc 200 */
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+}
+
+.btn-glass {
+  background-color: rgba(255, 255, 255, 0.45);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  color: #334155;
+  backdrop-filter: blur(8px);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dark .btn-glass {
+  background-color: rgba(9, 9, 11, 0.45);
+  border: 1px solid rgba(63, 63, 70, 0.4);
+  color: #e4e4e7;
+  backdrop-filter: blur(8px);
+}
+
+.btn-glass:hover {
+  background-color: rgba(255, 255, 255, 0.65);
+  border-color: rgba(203, 213, 225, 1);
+  color: #0f172a;
+}
+
+.dark .btn-glass:hover {
+  background-color: rgba(24, 24, 27, 0.65);
+  border-color: rgba(82, 82, 91, 0.8);
+  color: #ffffff;
+}
+

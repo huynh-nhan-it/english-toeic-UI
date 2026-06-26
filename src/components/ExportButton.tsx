@@ -25,7 +25,7 @@ export const ExportButton = memo(function ExportButton({ progress }: ExportButto
 
   return (
     <button
-      className="inline-flex h-10 items-center justify-center gap-2 rounded bg-emerald-500 px-4 text-sm font-semibold text-zinc-950 transition hover:bg-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:ring-offset-2 focus:ring-offset-zinc-950"
+      className="inline-flex h-10 items-center justify-center gap-2 rounded-xl btn-glass px-5 text-xs font-bold transition spring-transition hover:scale-[1.02] active:scale-[0.98] cursor-pointer shadow-sm w-full sm:w-auto whitespace-nowrap shrink-0"
       onClick={handleExport}
       type="button"
     >
@@ -33,4 +33,6 @@ export const ExportButton = memo(function ExportButton({ progress }: ExportButto
       Export JSON
     </button>
   )
+
+
 })

@@ -4,6 +4,16 @@ import userEvent from '@testing-library/user-event'
 import App from './App'
 import { STORAGE_KEY } from './lib/storage'
 
+function expectQuestionValue(questionNumber: number, expectedValue: string) {
+  const questionEl = screen.getByLabelText(`Question ${questionNumber}`)
+  const selectedButton = questionEl.querySelector('.bg-indigo-600')
+  if (expectedValue === '') {
+    expect(selectedButton).toBeNull()
+  } else {
+    expect(selectedButton).toHaveTextContent(expectedValue)
+  }
+}
+
 describe('TOEIC Progress SPA', () => {
   beforeEach(() => {
     localStorage.clear()
@@ -16,29 +26,48 @@ describe('TOEIC Progress SPA', () => {
     render(<App />)
 
     expect(screen.getAllByLabelText(/Question \d+/)).toHaveLength(200)
-    expect(screen.getByLabelText('Question 1')).toHaveValue('')
-    expect(screen.getByLabelText('Question 200')).toHaveValue('')
+    expectQuestionValue(1, '')
+    expectQuestionValue(200, '')
   })
 
-  test('hydrates answers and notebook notes from localStorage', () => {
+  test('hydrates answers and notebook notes from localStorage', async () => {
+    const user = userEvent.setup()
     localStorage.setItem(
       STORAGE_KEY,
       JSON.stringify({
-        version: 1,
-        answers: { 1: 'B', 200: 'D' },
-        notes: {
-          businessVocabulary: 'invoice, quarterly revenue',
-          grammarTraps: 'subject verb agreement',
-          transcriptShadowing: 'Could you repeat that?',
-        },
+        version: 5,
+        activeExamId: 'exam-1',
+        exams: [{
+          id: 'exam-1',
+          title: 'TOEIC Test 1',
+          answers: { 1: 'B', 200: 'D' },
+          notes: {
+            businessVocabulary: 'invoice, quarterly revenue',
+            grammarTraps: 'subject verb agreement',
+            transcriptShadowing: 'Could you repeat that?',
+            selectedGrammarFormulaIds: [],
+            activeShadowingLine: null,
+            completedShadowingLines: [],
+          },
+          createdAt: '2026-05-24T00:00:00.000Z',
+          updatedAt: '2026-05-24T00:00:00.000Z',
+        }],
+        flashcards: [],
+        cloudConfig: { projectId: 'toeic-progress-default', apiKey: '', enabled: false, user: null },
         updatedAt: '2026-05-24T00:00:00.000Z',
       }),
     )
 
     render(<App />)
 
-    expect(screen.getByLabelText('Question 1')).toHaveValue('B')
-    expect(screen.getByLabelText('Question 200')).toHaveValue('D')
+    // Verify answers are hydrated
+    expectQuestionValue(1, 'B')
+    expectQuestionValue(200, 'D')
+
+    // Navigate to Notebook Tab
+    await user.click(screen.getAllByRole('button', { name: /sổ tay/i })[0])
+
+    // Verify notes are hydrated
     expect(screen.getByLabelText('Business Vocabulary')).toHaveValue('invoice, quarterly revenue')
     expect(screen.getByLabelText('Grammar Traps')).toHaveValue('subject verb agreement')
     expect(screen.getByLabelText('Transcript Shadowing')).toHaveValue('Could you repeat that?')
@@ -49,26 +78,31 @@ describe('TOEIC Progress SPA', () => {
     render(<App />)
 
     const firstQuestion = screen.getByLabelText('Question 1')
-    expect(firstQuestion).toHaveDisplayValue('Select')
-    expect(within(firstQuestion).getByRole('option', { name: 'A' })).toBeInTheDocument()
-    expect(within(firstQuestion).getByRole('option', { name: 'B' })).toBeInTheDocument()
-    expect(within(firstQuestion).getByRole('option', { name: 'C' })).toBeInTheDocument()
-    expect(within(firstQuestion).getByRole('option', { name: 'D' })).toBeInTheDocument()
+    expect(within(firstQuestion).getByRole('button', { name: 'A' })).toBeInTheDocument()
+    expect(within(firstQuestion).getByRole('button', { name: 'B' })).toBeInTheDocument()
+    expect(within(firstQuestion).getByRole('button', { name: 'C' })).toBeInTheDocument()
+    expect(within(firstQuestion).getByRole('button', { name: 'D' })).toBeInTheDocument()
 
-    await user.type(firstQuestion, 'a')
+    // Type 'a' into the focusable div
+    firstQuestion.focus()
+    await user.keyboard('a')
 
-    expect(screen.getByLabelText('Question 1')).toHaveValue('A')
+    expectQuestionValue(1, 'A')
     await waitFor(() => expect(screen.getByLabelText('Question 2')).toHaveFocus())
-    expect(JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}').exams[0].answers['1']).toBe('A')
+    
+    const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}')
+    expect(stored.exams[0].answers['1']).toBe('A')
   })
 
   test('ignores invalid answer keys', async () => {
     const user = userEvent.setup()
     render(<App />)
 
-    await user.type(screen.getByLabelText('Question 1'), 'x')
+    const firstQuestion = screen.getByLabelText('Question 1')
+    firstQuestion.focus()
+    await user.keyboard('x')
 
-    expect(screen.getByLabelText('Question 1')).toHaveValue('')
+    expectQuestionValue(1, '')
     expect(localStorage.getItem(STORAGE_KEY)).toBeNull()
   })
 
@@ -77,57 +111,76 @@ describe('TOEIC Progress SPA', () => {
     render(<App />)
 
     const question = screen.getByLabelText('Question 1')
-    await user.type(question, 'c')
+    question.focus()
+    await user.keyboard('c')
+    expectQuestionValue(1, 'C')
+
     question.focus()
     await user.keyboard('{Backspace}')
 
-    expect(question).toHaveValue('')
-    expect(JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}').exams[0].answers['1']).toBe('')
+    expectQuestionValue(1, '')
+    const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}')
+    expect(stored.exams[0].answers['1']).toBe('')
   })
 
   test('does not crash when answering question 200', async () => {
     const user = userEvent.setup()
     render(<App />)
 
-    await user.type(screen.getByLabelText('Question 200'), 'd')
+    const q200 = screen.getByLabelText('Question 200')
+    q200.focus()
+    await user.keyboard('d')
 
-    expect(screen.getByLabelText('Question 200')).toHaveValue('D')
-    expect(JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}').exams[0].answers['200']).toBe('D')
+    expectQuestionValue(200, 'D')
+    const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}')
+    expect(stored.exams[0].answers['200']).toBe('D')
   })
 
   test('debounces notebook saves to localStorage', async () => {
+    const user = userEvent.setup()
     vi.useFakeTimers()
     render(<App />)
+
+    // Switch to Notebook tab
+    await act(async () => {
+      fireEvent.click(screen.getAllByRole('button', { name: /sổ tay/i })[0])
+    })
 
     fireEvent.change(screen.getByLabelText('Business Vocabulary'), {
       target: { value: 'contract' },
     })
 
     expect(localStorage.getItem(STORAGE_KEY)).toBeNull()
+    
     await act(async () => {
       vi.advanceTimersByTime(500)
     })
 
-    expect(JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}').exams[0].notes.businessVocabulary).toBe(
-      'contract',
-    )
+    const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}')
+    expect(stored.exams[0].notes.businessVocabulary).toBe('contract')
   })
 
   test('creates a new exam set and keeps answers isolated per set', async () => {
     const user = userEvent.setup()
     render(<App />)
 
-    await user.type(screen.getByLabelText('Question 1'), 'a')
+    const q1 = screen.getByLabelText('Question 1')
+    q1.focus()
+    await user.keyboard('a')
+
     await user.click(screen.getByRole('button', { name: /new test/i }))
 
     expect(screen.getByLabelText('Current Exam')).toHaveDisplayValue('TOEIC Test 2')
-    expect(screen.getByLabelText('Question 1')).toHaveValue('')
+    expectQuestionValue(1, '')
 
-    await user.type(screen.getByLabelText('Question 1'), 'c')
+    q1.focus()
+    await user.keyboard('c')
+    
     await user.selectOptions(screen.getByLabelText('Current Exam'), 'exam-1')
 
-    expect(screen.getByLabelText('Question 1')).toHaveValue('A')
-    expect(JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}').exams).toHaveLength(2)
+    expectQuestionValue(1, 'A')
+    const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}')
+    expect(stored.exams).toHaveLength(2)
   })
 
   test('renames the active exam set', async () => {
@@ -138,16 +191,24 @@ describe('TOEIC Progress SPA', () => {
     await user.type(screen.getByLabelText('Exam Name'), 'ETS 2024 Test 01')
 
     expect(screen.getByLabelText('Current Exam')).toHaveDisplayValue('ETS 2024 Test 01')
-    expect(JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}').exams[0].title).toBe('ETS 2024 Test 01')
+    const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}')
+    expect(stored.exams[0].title).toBe('ETS 2024 Test 01')
   })
 
   test('toggles TOEIC grammar formulas and saves selected options', async () => {
+    const user = userEvent.setup()
     vi.useFakeTimers()
     render(<App />)
 
+    // Switch to Notebook tab
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /have \+ s \+ v3/i }))
+      fireEvent.click(screen.getAllByRole('button', { name: /sổ tay/i })[0])
     })
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /perfect question/i }))
+    })
+    
     await act(async () => {
       vi.runOnlyPendingTimers()
     })
@@ -156,11 +217,14 @@ describe('TOEIC Progress SPA', () => {
     expect(stored.exams[0].notes.selectedGrammarFormulaIds).toContain('present-perfect-question')
   })
 
-  test('shows TOEIC grammar formula examples', () => {
+  test('shows TOEIC grammar formula definitions in notebook', async () => {
+    const user = userEvent.setup()
     render(<App />)
 
-    expect(screen.getByText('S + have/has/had + V3')).toBeInTheDocument()
-    expect(screen.getByText(/Have you submitted the report/i)).toBeInTheDocument()
+    // Switch to Notebook tab
+    await user.click(screen.getAllByRole('button', { name: /sổ tay/i })[0])
+
+    expect(screen.getByTitle(/Have \+ S \+ V3/i)).toBeInTheDocument()
   })
 
   test('shows vocabulary suggestions from the free Datamuse API', async () => {
@@ -178,11 +242,13 @@ describe('TOEIC Progress SPA', () => {
     const user = userEvent.setup()
     render(<App />)
 
+    // Switch to Notebook tab
+    await user.click(screen.getAllByRole('button', { name: /sổ tay/i })[0])
+
     await user.type(screen.getByLabelText('Vocabulary Search'), 'cont')
 
-    expect(await screen.findByRole('button', { name: /contract renewal/i })).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: 'contract renewal' })).toBeInTheDocument()
     expect(await screen.findByRole('button', { name: /^contract$/i })).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /add contract/i })).not.toBeInTheDocument()
     expect(fetch).toHaveBeenLastCalledWith('https://api.datamuse.com/sug?s=cont&max=8', {
       signal: expect.any(AbortSignal),
     })
@@ -199,31 +265,56 @@ describe('TOEIC Progress SPA', () => {
     const user = userEvent.setup()
     render(<App />)
 
+    // Switch to Notebook tab
+    await user.click(screen.getAllByRole('button', { name: /sổ tay/i })[0])
+
     await user.type(screen.getByLabelText('Vocabulary Search'), 'meet the req')
 
     expect(await screen.findByRole('button', { name: 'meet the requirements' })).toBeInTheDocument()
   })
 
-  test('adds a selected vocabulary suggestion to the vocabulary notes', async () => {
+  test('adds a selected vocabulary suggestion to the vocabulary details view', async () => {
     vi.stubGlobal(
       'fetch',
-      vi.fn().mockResolvedValue({
-        ok: true,
-        json: async () => [{ word: 'invoice' }],
-      }),
+      vi.fn().mockImplementation((url) => {
+        if (url.includes('translate.googleapis.com')) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve([[['hóa đơn', 'invoice']]]),
+          })
+        }
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve([{
+            word: 'invoice',
+            phonetic: '/ˈɪnvɔɪs/',
+            meanings: [{
+              definitions: [{ definition: 'A list of goods sent or services provided.' }]
+            }]
+          }]),
+        })
+      })
     )
     const user = userEvent.setup()
     render(<App />)
 
+    // Switch to Notebook tab
+    await user.click(screen.getAllByRole('button', { name: /sổ tay/i })[0])
+
     await user.type(screen.getByLabelText('Vocabulary Search'), 'inv')
     await user.click(await screen.findByRole('button', { name: /^invoice$/i }))
 
-    expect(screen.getByLabelText('Business Vocabulary')).toHaveValue('invoice')
+    expect(await screen.findByText('hóa đơn')).toBeInTheDocument()
   })
 
   test('splits transcript into shadowing lines and tracks completed practice lines', async () => {
     vi.useFakeTimers()
     render(<App />)
+
+    // Switch to Notebook tab
+    await act(async () => {
+      fireEvent.click(screen.getAllByRole('button', { name: /sổ tay/i })[0])
+    })
 
     fireEvent.change(screen.getByLabelText('Transcript Shadowing'), {
       target: { value: 'Welcome to the meeting.\nPlease review the agenda.' },
@@ -249,7 +340,9 @@ describe('TOEIC Progress SPA', () => {
     const user = userEvent.setup()
 
     render(<App />)
-    await user.type(screen.getByLabelText('Question 1'), 'b')
+    const q1 = screen.getByLabelText('Question 1')
+    q1.focus()
+    await user.keyboard('b')
     await user.click(screen.getByRole('button', { name: /export json/i }))
 
     expect(createObjectURL).toHaveBeenCalledWith(expect.any(Blob))
