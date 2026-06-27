@@ -219,7 +219,7 @@ export function SettingsTab({
           google.accounts.id.renderButton(btnContainer, {
             theme: 'filled_blue',
             size: 'large',
-            width: btnContainer.clientWidth || 320,
+            width: Math.min(400, Math.max(200, btnContainer.clientWidth || 280)),
             text: 'signin_with',
             shape: 'rectangular',
           })

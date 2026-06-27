@@ -94,6 +94,7 @@ function normalizeCloudConfig(value: unknown): CloudConfig {
   return {
     projectId: typeof config.projectId === 'string' && config.projectId.length > 0 ? config.projectId : 'toeic-progress-web',
     apiKey: typeof config.apiKey === 'string' ? decryptKey(config.apiKey) : '',
+    googleClientId: typeof config.googleClientId === 'string' ? config.googleClientId : '',
     enabled: typeof config.enabled === 'boolean' ? config.enabled : true,
     user: user && user.email && user.uid ? user : null,
   }
