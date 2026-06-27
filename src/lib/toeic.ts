@@ -989,12 +989,14 @@ export function createEmptyProgress(): ToeicProgressData {
     exams: [initialExam],
     flashcards: [],
     cloudConfig: {
-      projectId: 'toeic-progress-web', // Default project ID for out-of-the-box experience
-      apiKey: '', // Empty by default, users can customize if needed or use the default one
+      projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || 'toeic-progress-web',
+      apiKey: import.meta.env.VITE_FIREBASE_API_KEY || '',
+      googleClientId: import.meta.env.VITE_GOOGLE_CLIENT_ID || '',
       enabled: true,
       user: null,
     },
     updatedAt: new Date().toISOString(),
+    geminiApiKey: import.meta.env.VITE_GEMINI_API_KEY || '',
   }
 }
 

@@ -23,8 +23,8 @@ const NOTE_SAVE_DELAY_MS = 500
 const SYNC_DEBOUNCE_MS = 2000
 
 // Safe defaults so compilation/auth doesn't fail
-const DEFAULT_PROJECT_ID = 'toeic-progress-web'
-const DEFAULT_API_KEY = 'AIzaSyA-mock-key-for-toeic-progress'
+const DEFAULT_PROJECT_ID = import.meta.env.VITE_FIREBASE_PROJECT_ID || 'toeic-progress-web'
+const DEFAULT_API_KEY = import.meta.env.VITE_FIREBASE_API_KEY || 'AIzaSyA-mock-key-for-toeic-progress'
 
 function areNumberArraysEqual(left: number[], right: number[]): boolean {
   return left.length === right.length && left.every((value, index) => value === right[index])
@@ -62,6 +62,19 @@ export function useToeicProgress() {
   const [progress, setProgress] = useState<ToeicProgressData>(() => loadProgress())
   const activeExam = getActiveExam(progress)
   const [notesDraft, setNotesDraft] = useState(() => activeExam.notes)
+
+  const resolvedCloudConfig = useMemo(() => {
+    return {
+      ...progress.cloudConfig,
+      projectId: progress.cloudConfig.projectId.trim() || import.meta.env.VITE_FIREBASE_PROJECT_ID || 'toeic-progress-web',
+      apiKey: progress.cloudConfig.apiKey.trim() || import.meta.env.VITE_FIREBASE_API_KEY || '',
+      googleClientId: progress.cloudConfig.googleClientId?.trim() || import.meta.env.VITE_GOOGLE_CLIENT_ID || '',
+    }
+  }, [progress.cloudConfig])
+
+  const resolvedGeminiApiKey = useMemo(() => {
+    return progress.geminiApiKey || import.meta.env.VITE_GEMINI_API_KEY || ''
+  }, [progress.geminiApiKey])
 
   // Helper to get active API Key & Project ID
   const getFirebaseConfig = useCallback(() => {
@@ -521,7 +534,7 @@ export function useToeicProgress() {
       updateAnswer,
       updateNote,
       flashcards: progress.flashcards,
-      cloudConfig: progress.cloudConfig,
+      cloudConfig: resolvedCloudConfig,
       addFlashcard,
       updateFlashcard,
       deleteFlashcard,
@@ -535,7 +548,7 @@ export function useToeicProgress() {
       manualSync,
       updateLeitnerIntervals,
       leitnerIntervals: progress.leitnerIntervals,
-      geminiApiKey: progress.geminiApiKey,
+      geminiApiKey: resolvedGeminiApiKey,
       updateGeminiApiKey,
     }),
     [
@@ -560,7 +573,8 @@ export function useToeicProgress() {
       manualSync,
       updateLeitnerIntervals,
       progress.leitnerIntervals,
-      progress.geminiApiKey,
+      resolvedGeminiApiKey,
+      resolvedCloudConfig,
       updateGeminiApiKey,
     ],
   )
