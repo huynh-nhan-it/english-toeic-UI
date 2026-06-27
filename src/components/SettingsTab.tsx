@@ -223,7 +223,7 @@ export function SettingsTab({
             size: 'large',
             width: Math.min(400, Math.max(200, btnContainer.clientWidth || 280)),
             text: 'signin_with',
-            shape: 'rectangular',
+            shape: 'pill',
           })
         }
       } catch (e) {
@@ -432,7 +432,11 @@ export function SettingsTab({
               {cloudConfig.googleClientId ? (
                 <div className="flex flex-col items-center justify-center gap-3 border-t border-slate-100 dark:border-zinc-800/60 pt-4">
                   <span className="text-[10px] text-slate-400 dark:text-zinc-500 font-bold uppercase tracking-wider">Hoặc đăng nhập nhanh</span>
-                  <div id="google-signin-btn-real" className="w-full flex justify-center min-h-[44px]"></div>
+                  <div 
+                    id="google-signin-btn-real" 
+                    style={{ colorScheme: 'light' }}
+                    className="w-full flex justify-center min-h-[44px]"
+                  ></div>
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center gap-3 border-t border-slate-100 dark:border-zinc-800/60 pt-4">
