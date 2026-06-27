@@ -19,6 +19,7 @@ import {
 } from 'lucide-react'
 import type { CloudConfig } from '../lib/toeic'
 import { CustomDialog } from './CustomDialog'
+import { useTheme } from './ThemeContext'
 
 type SettingsTabProps = {
   cloudConfig: CloudConfig
@@ -49,6 +50,7 @@ export function SettingsTab({
   onUpdateLeitnerIntervals,
   onManualSync
 }: SettingsTabProps) {
+  const { theme } = useTheme()
   // Auth Form State
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login')
   const [email, setEmail] = useState('')
@@ -217,7 +219,7 @@ export function SettingsTab({
         const btnContainer = document.getElementById('google-signin-btn-real')
         if (btnContainer) {
           google.accounts.id.renderButton(btnContainer, {
-            theme: 'filled_blue',
+            theme: theme === 'dark' ? 'filled_black' : 'filled_blue',
             size: 'large',
             width: Math.min(400, Math.max(200, btnContainer.clientWidth || 280)),
             text: 'signin_with',
@@ -231,7 +233,7 @@ export function SettingsTab({
 
     const timer = setTimeout(initGoogleGis, 500)
     return () => clearTimeout(timer)
-  }, [cloudConfig.googleClientId, onLoginWithGoogle])
+  }, [cloudConfig.googleClientId, onLoginWithGoogle, theme])
 
   const handleSaveGeminiKey = () => {
     onSaveGeminiApiKey(geminiKey.trim())
@@ -273,7 +275,7 @@ export function SettingsTab({
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-transparent select-none">
+    <div className="flex h-full min-h-0 flex-col bg-transparent">
       {/* Tab Title */}
       <div className="border-b border-slate-200/80 dark:border-zinc-800/80 px-4 py-4 sm:px-6 shrink-0 bg-transparent">
         <h2 className="text-base font-black text-slate-800 dark:text-white">Cài đặt Hệ thống (Settings)</h2>
