@@ -199,6 +199,7 @@ export function SettingsTab({
       try {
         google.accounts.id.initialize({
           client_id: clientId,
+          use_fedcm: true,
           callback: async (response: any) => {
             setAuthError('')
             setAuthSuccess('')
