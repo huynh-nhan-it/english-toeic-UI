@@ -42,9 +42,11 @@ export function FlashcardsTab({
   reviewMode,
   studyMode,
   showStarredOnly,
+  setShowStarredOnly,
   isShuffled,
   autoPronounce,
   cramMode,
+  setCramMode,
 }: FlashcardsTabProps) {
   const [currentIndex, setCurrentIndex] = useState(0)
 

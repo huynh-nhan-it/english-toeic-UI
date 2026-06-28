@@ -25,7 +25,7 @@ export interface CloudSlice {
   ensureValidToken: () => Promise<boolean>
 }
 
-export const createCloudSlice: StateCreator<ToeicState, [["zustand/persist", unknown]], [], CloudSlice> = (set, get) => {
+export const createCloudSlice: StateCreator<ToeicState, [], [], CloudSlice> = (set, get) => {
   const getFirebaseConfig = () => {
     const config = get().cloudConfig
     const pId = config.projectId.trim() || DEFAULT_PROJECT_ID

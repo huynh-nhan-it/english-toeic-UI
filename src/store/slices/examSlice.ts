@@ -12,7 +12,7 @@ export interface ExamSlice {
   updateAnswer: (questionNumber: number, answer: AnswerChoice) => void
 }
 
-export const createExamSlice: StateCreator<ToeicState, [["zustand/persist", unknown]], [], ExamSlice> = (set) => ({
+export const createExamSlice: StateCreator<ToeicState, [], [], ExamSlice> = (set) => ({
   activeExamId: 'exam-1',
   exams: [createExam('exam-1', 'TOEIC Test 1')],
 

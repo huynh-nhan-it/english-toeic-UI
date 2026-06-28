@@ -20,7 +20,7 @@ export interface FlashcardSlice {
   updateGeminiApiKey: (apiKey: string) => void
 }
 
-export const createFlashcardSlice: StateCreator<ToeicState, [["zustand/persist", unknown]], [], FlashcardSlice> = (set) => ({
+export const createFlashcardSlice: StateCreator<ToeicState, [], [], FlashcardSlice> = (set) => ({
   flashcards: [],
   leitnerIntervals: [
     60 * 1000, // Box 1: 1 min

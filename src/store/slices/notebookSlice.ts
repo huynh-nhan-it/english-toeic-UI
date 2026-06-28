@@ -6,7 +6,7 @@ export interface NotebookSlice {
   updateActiveExamNotes: (notes: StudyNotes) => void
 }
 
-export const createNotebookSlice: StateCreator<ToeicState, [["zustand/persist", unknown]], [], NotebookSlice> = (set) => ({
+export const createNotebookSlice: StateCreator<ToeicState, [], [], NotebookSlice> = (set) => ({
   updateActiveExamNotes: (notes: StudyNotes) => {
     set((state) => ({
       exams: state.exams.map((exam) =>

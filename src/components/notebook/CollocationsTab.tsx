@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react'
 import { Sparkles, Search, Volume2, Copy, Check, Plus } from 'lucide-react'
 import { fetchOnlineCollocations } from '../../services/dictionary.service'
 import { TOEIC_COLLOCATIONS } from '../../lib/toeic'
+import type { ToeicCollocation } from '../../types'
 
 type CollocationsTabProps = {
   notesText: string
