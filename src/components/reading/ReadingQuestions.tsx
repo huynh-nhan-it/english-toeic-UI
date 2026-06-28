@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react'
 import { Layers, Award, HelpCircle, ArrowRight, Sparkles } from 'lucide-react'
 import type { ToeicReadingPassage } from '../../services/gemini.service'
-import { useToeicStore } from '../../store/useToeicStore'
+import { useToeicStore, useResolvedGeminiApiKey } from '../../store/useToeicStore'
 
 type ReadingQuestionsProps = {
   currentPassage: ToeicReadingPassage
@@ -24,7 +24,7 @@ export function ReadingQuestions({
   stats,
   documentsContent,
 }: ReadingQuestionsProps) {
-  const geminiApiKey = useToeicStore((state) => state.geminiApiKey)
+  const geminiApiKey = useResolvedGeminiApiKey()
   const [aiExplanations, setAiExplanations] = useState<Record<string, string>>({})
   const [loadingExplainer, setLoadingExplainer] = useState<Record<string, boolean>>({})
 

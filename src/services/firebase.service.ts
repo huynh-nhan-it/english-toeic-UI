@@ -1,4 +1,5 @@
 import type { ToeicProgressData, CloudConfig } from '../types'
+import { resolveCloudConfig } from '../lib/env'
 
 export interface AuthResponse {
   email: string
@@ -132,7 +133,7 @@ export async function refreshAuthToken(
 
 // Firestore REST: Upload Progress
 export async function uploadToFirebase(progress: ToeicProgressData): Promise<boolean> {
-  const { projectId, enabled, user } = progress.cloudConfig
+  const { projectId, enabled, user } = resolveCloudConfig(progress.cloudConfig)
   if (!enabled || !user || !user.uid || !user.idToken) return false
 
   try {
@@ -166,7 +167,7 @@ export async function uploadToFirebase(progress: ToeicProgressData): Promise<boo
 
 // Firestore REST: Download Progress
 export async function downloadFromFirebase(config: CloudConfig): Promise<ToeicProgressData | null> {
-  const { projectId, user } = config
+  const { projectId, user } = resolveCloudConfig(config)
   if (!user || !user.uid || !user.idToken) return null
 
   try {

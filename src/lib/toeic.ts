@@ -1,3 +1,5 @@
+import { ENV } from './env'
+
 export type AnswerChoice = '' | 'A' | 'B' | 'C' | 'D'
 
 export type StudyNotes = {
@@ -989,14 +991,14 @@ export function createEmptyProgress(): ToeicProgressData {
     exams: [initialExam],
     flashcards: [],
     cloudConfig: {
-      projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || 'toeic-progress-web',
-      apiKey: import.meta.env.VITE_FIREBASE_API_KEY || '',
-      googleClientId: import.meta.env.VITE_GOOGLE_CLIENT_ID || '',
+      projectId: ENV.firebaseProjectId,
+      apiKey: ENV.firebaseApiKey,
+      googleClientId: ENV.googleClientId,
       enabled: true,
       user: null,
     },
     updatedAt: new Date().toISOString(),
-    geminiApiKey: import.meta.env.VITE_GEMINI_API_KEY || '',
+    geminiApiKey: ENV.geminiApiKey,
   }
 }
 

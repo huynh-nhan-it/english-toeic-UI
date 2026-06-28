@@ -10,6 +10,7 @@ import {
   type FlashcardItem,
   type CloudConfig,
 } from './toeic'
+import { resolveCloudConfig, resolveGeminiApiKey } from './env'
 
 export const STORAGE_KEY = 'toeic-progress-v1'
 
@@ -90,13 +91,13 @@ function normalizeCloudConfig(value: unknown): CloudConfig {
     }
   }
 
-  return {
-    projectId: typeof config.projectId === 'string' && config.projectId.length > 0 ? config.projectId : 'toeic-progress-web',
+  return resolveCloudConfig({
+    projectId: typeof config.projectId === 'string' && config.projectId.length > 0 ? config.projectId : '',
     apiKey: typeof config.apiKey === 'string' ? decryptKey(config.apiKey) : '',
     googleClientId: typeof config.googleClientId === 'string' ? config.googleClientId : '',
     enabled: typeof config.enabled === 'boolean' ? config.enabled : true,
     user: user && user.email && user.uid ? user : null,
-  }
+  })
 }
 
 function normalizeExam(value: unknown, fallbackIndex: number): ToeicExam {
@@ -219,7 +220,11 @@ export function loadProgress(): ToeicProgressData {
       cloudConfig,
       updatedAt: parsed.updatedAt ?? emptyProgress.updatedAt,
       leitnerIntervals: Array.isArray((parsed as Record<string, unknown>).leitnerIntervals) ? ((parsed as Record<string, unknown>).leitnerIntervals as number[]) : undefined,
-      geminiApiKey: typeof (parsed as Record<string, unknown>).geminiApiKey === 'string' ? decryptKey((parsed as Record<string, unknown>).geminiApiKey as string) : undefined,
+      geminiApiKey: resolveGeminiApiKey(
+        typeof (parsed as Record<string, unknown>).geminiApiKey === 'string'
+          ? decryptKey((parsed as Record<string, unknown>).geminiApiKey as string)
+          : undefined,
+      ),
     }
   } catch {
     return emptyProgress

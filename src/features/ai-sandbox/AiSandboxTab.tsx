@@ -16,7 +16,7 @@ import {
   VolumeX,
   Search
 } from 'lucide-react'
-import { useToeicStore, useActiveExam } from '../../store/useToeicStore'
+import { useToeicStore, useActiveExam, useResolvedGeminiApiKey } from '../../store/useToeicStore'
 import { TOEIC_GRAMMAR_FORMULAS } from '../../lib/toeic'
 import {
   generateChatRoleplayResponse,
@@ -229,7 +229,7 @@ interface WindowWithSpeech {
 }
 
 export function AiSandboxTab() {
-  const geminiApiKey = useToeicStore((state) => state.geminiApiKey)
+  const geminiApiKey = useResolvedGeminiApiKey()
   const flashcards = useToeicStore((state) => state.flashcards)
   const activeExam = useActiveExam()
   const [subTab, setSubTab] = useState<'chat' | 'story'>('chat')

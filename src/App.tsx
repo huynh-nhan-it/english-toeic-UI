@@ -19,7 +19,7 @@ import { FlashcardConfigPanel } from './components/flashcard/FlashcardConfigPane
 import { FlashcardGeneratorPanel } from './components/flashcard/FlashcardGeneratorPanel'
 
 // Global Store & Configs
-import { useToeicStore, useActiveExam } from './store/useToeicStore'
+import { useToeicStore, useActiveExam, useResolvedCloudConfig, useResolvedGeminiApiKey } from './store/useToeicStore'
 import { ThemeProvider } from './components/ThemeContext'
 import { TOEIC_GRAMMAR_FORMULAS, GRAMMAR_VIETNAMESE_TITLES, COLLO_VIETNAMESE_TITLES } from './lib/toeic'
 import type { StudyNotes } from './types'
@@ -219,7 +219,7 @@ function AppContent() {
   const updateFlashcard = useToeicStore((state) => state.updateFlashcard)
   const deleteFlashcard = useToeicStore((state) => state.deleteFlashcard)
 
-  const cloudConfig = useToeicStore((state) => state.cloudConfig)
+  const cloudConfig = useResolvedCloudConfig()
   const saveCloudConfig = useToeicStore((state) => state.saveCloudConfig)
   const onLogin = useToeicStore((state) => state.onLogin)
   const onRegister = useToeicStore((state) => state.onRegister)
@@ -228,7 +228,7 @@ function AppContent() {
   const clearData = useToeicStore((state) => state.clearData)
   const manualSync = useToeicStore((state) => state.manualSync)
 
-  const geminiApiKey = useToeicStore((state) => state.geminiApiKey)
+  const geminiApiKey = useResolvedGeminiApiKey()
   const updateGeminiApiKey = useToeicStore((state) => state.updateGeminiApiKey)
   const leitnerIntervals = useToeicStore((state) => state.leitnerIntervals)
   const updateLeitnerIntervals = useToeicStore((state) => state.updateLeitnerIntervals)

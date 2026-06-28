@@ -7,7 +7,7 @@ import { ReadingConfig, BUSINESS_CATEGORIES } from './reading/ReadingConfig'
 import { ReadingDocument } from './reading/ReadingDocument'
 import { ReadingQuestions } from './reading/ReadingQuestions'
 import { CustomDialog } from './CustomDialog'
-import { useToeicStore } from '../store/useToeicStore'
+import { useToeicStore, useResolvedGeminiApiKey } from '../store/useToeicStore'
 
 type ReadingPracticeSectionProps = {
   onCloseMobileMenu?: () => void
@@ -18,7 +18,7 @@ export function ReadingPracticeSection({
   onCloseMobileMenu,
 }: ReadingPracticeSectionProps) {
   const flashcards = useToeicStore((state) => state.flashcards)
-  const geminiApiKey = useToeicStore((state) => state.geminiApiKey)
+  const geminiApiKey = useResolvedGeminiApiKey()
 
   // Config state
   const [selectedCategory, setSelectedCategory] = useState('All Topics')

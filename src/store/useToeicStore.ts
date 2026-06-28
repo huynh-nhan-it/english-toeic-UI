@@ -1,10 +1,12 @@
 import { create } from 'zustand'
+import { useShallow } from 'zustand/react/shallow'
 import { createExamSlice, type ExamSlice } from './slices/examSlice'
 import { createFlashcardSlice, type FlashcardSlice } from './slices/flashcardSlice'
 import { createNotebookSlice, type NotebookSlice } from './slices/notebookSlice'
 import { createCloudSlice, type CloudSlice } from './slices/cloudSlice'
 import { createToastSlice, type ToastSlice } from './slices/toastSlice'
 import { loadProgress, saveProgress } from '../lib/storage'
+import { resolveCloudConfig, resolveGeminiApiKey } from '../lib/env'
 import type { ToeicProgressData } from '../types'
 
 export interface ToeicState extends ExamSlice, FlashcardSlice, NotebookSlice, CloudSlice, ToastSlice {
@@ -124,3 +126,8 @@ useToeicStore.subscribe((state) => {
 export const useActiveExam = () => useToeicStore((state) => {
   return state.exams.find((exam) => exam.id === state.activeExamId) ?? state.exams[0]
 })
+
+export const useResolvedCloudConfig = () =>
+  useToeicStore(useShallow((state) => resolveCloudConfig(state.cloudConfig)))
+
+export const useResolvedGeminiApiKey = () => useToeicStore((state) => resolveGeminiApiKey(state.geminiApiKey))

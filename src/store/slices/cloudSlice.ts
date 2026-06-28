@@ -9,9 +9,7 @@ import {
   uploadToFirebase,
   downloadFromFirebase,
 } from '../../services/firebase.service'
-
-const DEFAULT_PROJECT_ID = 'toeic-progress-web'
-const DEFAULT_API_KEY = 'AIzaSyA-mock-key-for-toeic-progress'
+import { resolveCloudConfig } from '../../lib/env'
 
 export interface CloudSlice {
   cloudConfig: CloudConfig
@@ -27,10 +25,8 @@ export interface CloudSlice {
 
 export const createCloudSlice: StateCreator<ToeicState, [], [], CloudSlice> = (set, get) => {
   const getFirebaseConfig = () => {
-    const config = get().cloudConfig
-    const pId = config.projectId.trim() || DEFAULT_PROJECT_ID
-    const key = config.apiKey.trim() || DEFAULT_API_KEY
-    return { projectId: pId, apiKey: key }
+    const config = resolveCloudConfig(get().cloudConfig)
+    return { projectId: config.projectId, apiKey: config.apiKey }
   }
 
   return {
@@ -99,11 +95,11 @@ export const createCloudSlice: StateCreator<ToeicState, [], [], CloudSlice> = (s
 
       const auth = await apiSignInWithEmail(email, password, apiKey)
       
-      const nextCloudConfig: CloudConfig = {
+      const nextCloudConfig: CloudConfig = resolveCloudConfig({
         ...get().cloudConfig,
         enabled: true,
         user: auth,
-      }
+      })
 
       const cloudData = await downloadFromFirebase(nextCloudConfig)
       
@@ -150,11 +146,11 @@ export const createCloudSlice: StateCreator<ToeicState, [], [], CloudSlice> = (s
 
       const auth = await apiSignUpWithEmail(email, password, apiKey)
       
-      const nextCloudConfig: CloudConfig = {
+      const nextCloudConfig: CloudConfig = resolveCloudConfig({
         ...get().cloudConfig,
         enabled: true,
         user: auth,
-      }
+      })
 
       set({
         cloudConfig: nextCloudConfig,
@@ -181,11 +177,11 @@ export const createCloudSlice: StateCreator<ToeicState, [], [], CloudSlice> = (s
 
       const auth = await apiSignInWithGoogle(idToken, apiKey)
       
-      const nextCloudConfig: CloudConfig = {
+      const nextCloudConfig: CloudConfig = resolveCloudConfig({
         ...get().cloudConfig,
         enabled: true,
         user: auth,
-      }
+      })
 
       const cloudData = await downloadFromFirebase(nextCloudConfig)
       
