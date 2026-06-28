@@ -1,26 +1,8 @@
-export type VocabularySuggestion = {
-  word: string
-}
+import type { DictionaryDetails, VocabularySuggestion, ToeicCollocation } from '../types'
 
-export type SynonymDetail = {
-  word: string
-  translation?: string
-  example?: string
-}
-
-export type DictionaryDetails = {
-  word: string
-  phonetic: string
-  definition: string
-  translation: string
-  synonyms: SynonymDetail[]
-  example: string
-  audioUrl?: string
-}
-
-type DatamuseSuggestion = {
-  word?: unknown
-}
+// Cache-Aside Pattern: In-memory caches for word details and collocations
+const wordDetailsCache = new Map<string, DictionaryDetails>()
+const onlineColloCache = new Map<string, ToeicCollocation[]>()
 
 export async function fetchVocabularySuggestions(
   query: string,
@@ -32,26 +14,39 @@ export async function fetchVocabularySuggestions(
     return []
   }
 
-  const response = await fetch(
-    `https://api.datamuse.com/sug?s=${encodeURIComponent(normalizedQuery)}&max=8`,
-    { signal },
-  )
+  try {
+    const response = await fetch(
+      `https://api.datamuse.com/sug?s=${encodeURIComponent(normalizedQuery)}&max=8`,
+      { signal },
+    )
 
-  if (!response.ok) {
+    if (!response.ok) {
+      return []
+    }
+
+    const data = (await response.json()) as { word?: unknown }[]
+
+    return data
+      .map((item) => item.word)
+      .filter((word): word is string => typeof word === 'string' && word.length > 0)
+      .map((word) => ({ word }))
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      throw error
+    }
+    console.error('Suggestions API error:', error)
     return []
   }
-
-  const data = (await response.json()) as DatamuseSuggestion[]
-
-  return data
-    .map((item) => item.word)
-    .filter((word): word is string => typeof word === 'string' && word.length > 0)
-    .map((word) => ({ word }))
 }
 
 export async function fetchWordDetails(word: string): Promise<DictionaryDetails> {
   const normalizedWord = word.trim().toLowerCase()
-  
+
+  // 1. Check cache first (Cache-Aside Pattern)
+  if (wordDetailsCache.has(normalizedWord)) {
+    return wordDetailsCache.get(normalizedWord)!
+  }
+
   let phonetic = ''
   let definition = ''
   let translation = ''
@@ -59,7 +54,7 @@ export async function fetchWordDetails(word: string): Promise<DictionaryDetails>
   let example = ''
   let audioUrl: string | undefined = undefined
 
-  // 1. Fetch Vietnamese Translation
+  // 2. Fetch Vietnamese Translation
   try {
     const transRes = await fetch(
       `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=vi&dt=t&q=${encodeURIComponent(normalizedWord)}`
@@ -74,7 +69,7 @@ export async function fetchWordDetails(word: string): Promise<DictionaryDetails>
     console.error('Translation error:', err)
   }
 
-  // 2. Fetch English Dictionary Details
+  // 3. Fetch English Dictionary Details
   try {
     const dictRes = await fetch(
       `https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(normalizedWord)}`
@@ -84,7 +79,7 @@ export async function fetchWordDetails(word: string): Promise<DictionaryDetails>
       if (Array.isArray(dictData) && dictData.length > 0) {
         const entry = dictData[0]
         phonetic = entry.phonetic || entry.phonetics?.[0]?.text || ''
-        
+
         // Find audio
         const audioObj = entry.phonetics?.find((p: { audio?: string }) => p.audio && p.audio.length > 0)
         if (audioObj) {
@@ -94,7 +89,7 @@ export async function fetchWordDetails(word: string): Promise<DictionaryDetails>
         // Get first meaning/definition
         if (entry.meanings && entry.meanings.length > 0) {
           const meaning = entry.meanings[0]
-          
+
           if (meaning.definitions && meaning.definitions.length > 0) {
             definition = meaning.definitions[0].definition || ''
             example = meaning.definitions[0].example || ''
@@ -119,14 +114,13 @@ export async function fetchWordDetails(word: string): Promise<DictionaryDetails>
     console.error('Dictionary API error:', err)
   }
 
-  // 3. Fetch details for synonyms in parallel
-  const synonyms: SynonymDetail[] = await Promise.all(
-    rawSynonyms.map(async (syn): Promise<SynonymDetail> => {
+  // 4. Fetch details for synonyms in parallel
+  const synonyms = await Promise.all(
+    rawSynonyms.map(async (syn) => {
       let synExample = ''
       let synTranslation = ''
 
       try {
-        // Translation API
         const transRes = await fetch(
           `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=vi&dt=t&q=${encodeURIComponent(syn)}`
         )
@@ -141,7 +135,6 @@ export async function fetchWordDetails(word: string): Promise<DictionaryDetails>
       }
 
       try {
-        // Dictionary API
         const dictRes = await fetch(
           `https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(syn)}`
         )
@@ -176,7 +169,7 @@ export async function fetchWordDetails(word: string): Promise<DictionaryDetails>
     })
   )
 
-  return {
+  const result: DictionaryDetails = {
     word: normalizedWord,
     phonetic,
     definition,
@@ -185,22 +178,22 @@ export async function fetchWordDetails(word: string): Promise<DictionaryDetails>
     example,
     audioUrl,
   }
-}
 
-export type ToeicCollocation = {
-  phrase: string
-  translation: string
-  category: 'Verb' | 'Noun' | 'Adjective' | 'Preposition' | 'Online Search'
-  example: string
-  exampleTranslation?: string
+  // Save to cache
+  wordDetailsCache.set(normalizedWord, result)
+  return result
 }
 
 export async function fetchOnlineCollocations(keyword: string): Promise<ToeicCollocation[]> {
   const trimmed = keyword.trim().toLowerCase()
   if (trimmed.length < 2) return []
 
+  // Check cache first (Cache-Aside Pattern)
+  if (onlineColloCache.has(trimmed)) {
+    return onlineColloCache.get(trimmed)!
+  }
+
   try {
-    // 1. Fetch frequent forward and backward bigrams from Datamuse in parallel
     const [resAfter, resBefore] = await Promise.all([
       fetch(`https://api.datamuse.com/words?rel_bga=${encodeURIComponent(trimmed)}&max=3`).then((r) =>
         r.ok ? r.json() : []
@@ -212,7 +205,6 @@ export async function fetchOnlineCollocations(keyword: string): Promise<ToeicCol
 
     const candidatePhrases: string[] = []
 
-    // Frequent forward bigrams: "keyword + word" (e.g. "meet" + "deadline")
     if (Array.isArray(resAfter)) {
       resAfter.forEach((item: { word?: string }) => {
         if (item.word && item.word.trim().length > 0) {
@@ -221,7 +213,6 @@ export async function fetchOnlineCollocations(keyword: string): Promise<ToeicCol
       })
     }
 
-    // Frequent backward bigrams: "word + keyword" (e.g. "comply" + "regulations")
     if (Array.isArray(resBefore)) {
       resBefore.forEach((item: { word?: string }) => {
         if (item.word && item.word.trim().length > 0) {
@@ -246,20 +237,15 @@ export async function fetchOnlineCollocations(keyword: string): Promise<ToeicCol
 
     const uniquePhrases = Array.from(new Set(candidatePhrases)).slice(0, 5)
 
-    // 2. Translate phrases and construct dynamic bilingual examples in parallel
     const results = await Promise.all(
       uniquePhrases.map(async (phrase) => {
         let translation = ''
-        // Construct a highly relevant business context example sentence
         const example = `We decided to ${phrase} in order to improve our operational efficiency.`
         let exampleTranslation = ''
-
         // Translate collocation phrase
         try {
           const transRes = await fetch(
-            `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=vi&dt=t&q=${encodeURIComponent(
-              phrase
-            )}`
+            `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=vi&dt=t&q=${encodeURIComponent(phrase)}`
           )
           if (transRes.ok) {
             const transData = await transRes.json()
@@ -271,12 +257,9 @@ export async function fetchOnlineCollocations(keyword: string): Promise<ToeicCol
           translation = `cụm từ liên quan đến ${trimmed}`
         }
 
-        // Translate example sentence
         try {
           const transExRes = await fetch(
-            `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=vi&dt=t&q=${encodeURIComponent(
-              example
-            )}`
+            `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=vi&dt=t&q=${encodeURIComponent(example)}`
           )
           if (transExRes.ok) {
             const transExData = await transExRes.json()
@@ -298,6 +281,7 @@ export async function fetchOnlineCollocations(keyword: string): Promise<ToeicCol
       })
     )
 
+    onlineColloCache.set(trimmed, results)
     return results
   } catch (err) {
     console.error('Error fetching online collocations:', err)

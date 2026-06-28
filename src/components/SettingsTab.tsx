@@ -4,7 +4,6 @@ import {
   Lock,
   Mail,
   LogOut,
-  Check,
   Save,
   AlertTriangle,
   Trash2,
@@ -17,7 +16,18 @@ import {
   EyeOff,
   RefreshCw
 } from 'lucide-react'
-import type { CloudConfig } from '../lib/toeic'
+import type { CloudConfig } from '../types'
+import { useToeicStore } from '../store/useToeicStore'
+
+
+interface GoogleGis {
+  accounts: {
+    id: {
+      initialize: (config: { client_id: string; use_fedcm?: boolean; callback: (resp: { credential: string }) => Promise<void> }) => void
+      renderButton: (parent: HTMLElement, options: Record<string, unknown>) => void
+    }
+  }
+}
 import { CustomDialog } from './CustomDialog'
 import { useTheme } from './ThemeContext'
 
@@ -133,12 +143,15 @@ export function SettingsTab({
   const [box4, setBox4] = useState(Math.round(currentIntervals[3] / (24 * 60 * 60 * 1000)))
   const [box5, setBox5] = useState(Math.round(currentIntervals[4] / (24 * 60 * 60 * 1000)))
 
-  // Sync state if prop changes
-  useEffect(() => {
+  const [prevGeminiApiKey, setPrevGeminiApiKey] = useState(geminiApiKey)
+  if (geminiApiKey !== prevGeminiApiKey) {
+    setPrevGeminiApiKey(geminiApiKey)
     setGeminiKey(geminiApiKey)
-  }, [geminiApiKey])
+  }
 
-  useEffect(() => {
+  const [prevLeitnerIntervals, setPrevLeitnerIntervals] = useState(leitnerIntervals)
+  if (leitnerIntervals !== prevLeitnerIntervals) {
+    setPrevLeitnerIntervals(leitnerIntervals)
     if (leitnerIntervals && leitnerIntervals.length === 5) {
       setBox1(Math.round(leitnerIntervals[0] / (60 * 1000)))
       setBox2(Math.round(leitnerIntervals[1] / (60 * 1000)))
@@ -146,7 +159,7 @@ export function SettingsTab({
       setBox4(Math.round(leitnerIntervals[3] / (24 * 60 * 60 * 1000)))
       setBox5(Math.round(leitnerIntervals[4] / (24 * 60 * 60 * 1000)))
     }
-  }, [leitnerIntervals])
+  }
 
   const handleAuthSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -186,21 +199,21 @@ export function SettingsTab({
 
   const handleSaveAdvanced = () => {
     onSaveCloudConfig(projectId.trim(), firebaseApiKey.trim(), googleClientId.trim(), enabled)
-    triggerAlert('Đã cập nhật cấu hình Firebase nâng cao thành công!')
+    useToeicStore.getState().showToast('Đã cập nhật cấu hình Firebase nâng cao thành công!', 'success', 'Đồng bộ đám mây')
   }
 
   // Khởi tạo Google Identity Services (GIS) để đăng nhập bằng Google
   useEffect(() => {
     const initGoogleGis = () => {
       const clientId = cloudConfig.googleClientId?.trim()
-      const google = (window as any).google
+      const google = (window as unknown as { google?: GoogleGis }).google
       if (!clientId || !google) return
 
       try {
         google.accounts.id.initialize({
           client_id: clientId,
           use_fedcm: true,
-          callback: async (response: any) => {
+          callback: async (response: { credential: string }) => {
             setAuthError('')
             setAuthSuccess('')
             setIsLoading(true)
@@ -238,12 +251,12 @@ export function SettingsTab({
 
   const handleSaveGeminiKey = () => {
     onSaveGeminiApiKey(geminiKey.trim())
-    triggerAlert('Đã lưu cấu hình khóa Gemini API Key thành công!')
+    useToeicStore.getState().showToast('Đã lưu cấu hình khóa Gemini API Key thành công!', 'success', 'Cấu hình AI')
   }
 
   const handleSaveLeitnerIntervals = () => {
     if (box1 <= 0 || box2 <= 0 || box3 <= 0 || box4 <= 0 || box5 <= 0) {
-      triggerAlert('Vui lòng nhập khoảng thời gian lớn hơn 0.')
+      useToeicStore.getState().showToast('Vui lòng nhập khoảng thời gian lớn hơn 0.', 'warning', 'Lỗi cấu hình')
       return
     }
 
@@ -257,7 +270,7 @@ export function SettingsTab({
     ]
 
     onUpdateLeitnerIntervals(newIntervals)
-    triggerAlert('Đã lưu cấu hình khoảng thời gian ôn tập Leitner mới thành công!')
+    useToeicStore.getState().showToast('Đã lưu cấu hình khoảng thời gian ôn tập Leitner mới thành công!', 'success', 'Hệ thống Leitner')
   }
 
   const handleManualSyncNow = async () => {
@@ -268,8 +281,9 @@ export function SettingsTab({
       await onManualSync()
       setSyncMessage('Đồng bộ thành công! Dữ liệu của bạn đã được cập nhật mới nhất.')
       setTimeout(() => setSyncMessage(''), 4000)
-    } catch (err: any) {
-      setSyncMessage(`Đồng bộ thất bại: ${err.message || 'Lỗi kết nối mạng'}`)
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Lỗi kết nối mạng'
+      setSyncMessage(`Đồng bộ thất bại: ${msg}`)
     } finally {
       setIsSyncing(false)
     }
@@ -306,7 +320,7 @@ export function SettingsTab({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1 bg-slate-100/50 dark:bg-zinc-950/40 p-3 rounded-2xl border border-slate-200/5">
                   <p className="text-[9px] text-slate-400 dark:text-zinc-500 font-black uppercase tracking-wider">Tài khoản kết nối</p>
-                  <p className="text-xs font-black text-slate-850 dark:text-zinc-200 line-clamp-1">{cloudConfig.user.email}</p>
+                  <p className="text-xs font-black text-slate-800 dark:text-zinc-200 line-clamp-1">{cloudConfig.user.email}</p>
                 </div>
 
                 <div className="space-y-1 bg-slate-100/50 dark:bg-zinc-950/40 p-3 rounded-2xl border border-slate-200/5">
@@ -387,7 +401,7 @@ export function SettingsTab({
               <form onSubmit={handleAuthSubmit} className="space-y-3.5">
                 <div className="space-y-3">
                   <div className="relative">
-                    <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-slate-450 dark:text-zinc-500 pointer-events-none" />
+                    <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-slate-500 dark:text-zinc-500 pointer-events-none" />
                     <input
                       type="email"
                       placeholder="Địa chỉ Email"
@@ -397,7 +411,7 @@ export function SettingsTab({
                     />
                   </div>
                   <div className="relative">
-                    <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-slate-450 dark:text-zinc-500 pointer-events-none" />
+                    <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-slate-500 dark:text-zinc-500 pointer-events-none" />
                     <input
                       type="password"
                       placeholder="Mật khẩu (tối thiểu 6 ký tự)"
@@ -423,7 +437,7 @@ export function SettingsTab({
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full inline-flex h-11 items-center justify-center gap-1.5 rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-650 dark:from-indigo-500 dark:to-violet-500 text-white text-xs font-black tracking-wider uppercase transition hover:scale-[1.02] active:scale-[0.97] cursor-pointer disabled:opacity-60 shadow-sm"
+                  className="w-full inline-flex h-11 items-center justify-center gap-1.5 rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 dark:from-indigo-500 dark:to-violet-500 text-white text-xs font-black tracking-wider uppercase transition hover:scale-[1.02] active:scale-[0.97] cursor-pointer disabled:opacity-60 shadow-sm"
                 >
                   {authMode === 'login' ? 'Đăng Nhập Ngay' : 'Đăng Ký Tài Khoản'}
                 </button>
@@ -517,14 +531,14 @@ export function SettingsTab({
                   href="https://aistudio.google.com/"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-[10px] font-black text-indigo-600 dark:text-violet-450 hover:underline tracking-wide"
+                  className="text-[10px] font-black text-indigo-600 dark:text-violet-500 hover:underline tracking-wide"
                 >
                   Lấy API Key Gemini miễn phí tại đây →
                 </a>
                 
                 <button
                   onClick={handleSaveGeminiKey}
-                  className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl bg-slate-100 dark:bg-zinc-900 border border-slate-200/60 dark:border-zinc-800 px-4 text-xs font-black text-slate-850 dark:text-zinc-200 hover:bg-slate-200 dark:hover:bg-zinc-800 transition hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+                  className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl bg-slate-100 dark:bg-zinc-900 border border-slate-200/60 dark:border-zinc-800 px-4 text-xs font-black text-slate-800 dark:text-zinc-200 hover:bg-slate-200 dark:hover:bg-zinc-800 transition hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
                 >
                   <Save className="size-4" />
                   Lưu API Key
@@ -546,57 +560,57 @@ export function SettingsTab({
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
               <label className="block space-y-1 bg-slate-50/50 dark:bg-zinc-950/20 p-3 rounded-2xl border border-slate-200/5">
-                <span className="text-[10px] font-bold text-slate-450 dark:text-zinc-500 uppercase tracking-wider block">Hộp 1 (Phút)</span>
+                <span className="text-[10px] font-bold text-slate-500 dark:text-zinc-500 uppercase tracking-wider block">Hộp 1 (Phút)</span>
                 <input
                   type="number"
                   min="1"
                   value={box1}
                   onChange={(e) => setBox1(Math.max(1, parseInt(e.target.value) || 1))}
-                  className="h-10 w-full rounded-xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3 text-xs font-bold text-slate-850 dark:text-white"
+                  className="h-10 w-full rounded-xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3 text-xs font-bold text-slate-800 dark:text-white"
                 />
               </label>
 
               <label className="block space-y-1 bg-slate-50/50 dark:bg-zinc-950/20 p-3 rounded-2xl border border-slate-200/5">
-                <span className="text-[10px] font-bold text-slate-450 dark:text-zinc-500 uppercase tracking-wider block">Hộp 2 (Phút)</span>
+                <span className="text-[10px] font-bold text-slate-500 dark:text-zinc-500 uppercase tracking-wider block">Hộp 2 (Phút)</span>
                 <input
                   type="number"
                   min="1"
                   value={box2}
                   onChange={(e) => setBox2(Math.max(1, parseInt(e.target.value) || 1))}
-                  className="h-10 w-full rounded-xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3 text-xs font-bold text-slate-850 dark:text-white"
+                  className="h-10 w-full rounded-xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3 text-xs font-bold text-slate-800 dark:text-white"
                 />
               </label>
 
               <label className="block space-y-1 bg-slate-50/50 dark:bg-zinc-950/20 p-3 rounded-2xl border border-slate-200/5">
-                <span className="text-[10px] font-bold text-slate-450 dark:text-zinc-500 uppercase tracking-wider block">Hộp 3 (Ngày)</span>
+                <span className="text-[10px] font-bold text-slate-500 dark:text-zinc-500 uppercase tracking-wider block">Hộp 3 (Ngày)</span>
                 <input
                   type="number"
                   min="1"
                   value={box3}
                   onChange={(e) => setBox3(Math.max(1, parseInt(e.target.value) || 1))}
-                  className="h-10 w-full rounded-xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3 text-xs font-bold text-slate-850 dark:text-white"
+                  className="h-10 w-full rounded-xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3 text-xs font-bold text-slate-800 dark:text-white"
                 />
               </label>
 
               <label className="block space-y-1 bg-slate-50/50 dark:bg-zinc-950/20 p-3 rounded-2xl border border-slate-200/5">
-                <span className="text-[10px] font-bold text-slate-450 dark:text-zinc-500 uppercase tracking-wider block">Hộp 4 (Ngày)</span>
+                <span className="text-[10px] font-bold text-slate-500 dark:text-zinc-500 uppercase tracking-wider block">Hộp 4 (Ngày)</span>
                 <input
                   type="number"
                   min="1"
                   value={box4}
                   onChange={(e) => setBox4(Math.max(1, parseInt(e.target.value) || 1))}
-                  className="h-10 w-full rounded-xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3 text-xs font-bold text-slate-850 dark:text-white"
+                  className="h-10 w-full rounded-xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3 text-xs font-bold text-slate-800 dark:text-white"
                 />
               </label>
 
               <label className="block space-y-1 bg-slate-50/50 dark:bg-zinc-950/20 p-3 rounded-2xl border border-slate-200/5 sm:col-span-2">
-                <span className="text-[10px] font-bold text-slate-450 dark:text-zinc-500 uppercase tracking-wider block">Hộp 5 (Ngày)</span>
+                <span className="text-[10px] font-bold text-slate-500 dark:text-zinc-500 uppercase tracking-wider block">Hộp 5 (Ngày)</span>
                 <input
                   type="number"
                   min="1"
                   value={box5}
                   onChange={(e) => setBox5(Math.max(1, parseInt(e.target.value) || 1))}
-                  className="h-10 w-full rounded-xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3 text-xs font-bold text-slate-850 dark:text-white"
+                  className="h-10 w-full rounded-xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3 text-xs font-bold text-slate-800 dark:text-white"
                 />
               </label>
             </div>
@@ -604,7 +618,7 @@ export function SettingsTab({
             <div className="flex justify-end pt-1">
               <button
                 onClick={handleSaveLeitnerIntervals}
-                className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl bg-slate-100 dark:bg-zinc-900 border border-slate-200/60 dark:border-zinc-800 px-4 text-xs font-black text-slate-850 dark:text-zinc-200 hover:bg-slate-200 dark:hover:bg-zinc-800 transition hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+                className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl bg-slate-100 dark:bg-zinc-900 border border-slate-200/60 dark:border-zinc-800 px-4 text-xs font-black text-slate-800 dark:text-zinc-200 hover:bg-slate-200 dark:hover:bg-zinc-800 transition hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
               >
                 <Save className="size-4" />
                 Lưu cấu hình thời gian
@@ -679,7 +693,7 @@ export function SettingsTab({
                 <div className="flex justify-end">
                   <button
                     onClick={handleSaveAdvanced}
-                    className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl bg-slate-100 dark:bg-zinc-900 border border-slate-200/60 dark:border-zinc-800 px-4 text-xs font-black text-slate-850 dark:text-zinc-200 hover:bg-slate-200 dark:hover:bg-zinc-800 transition hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+                    className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl bg-slate-100 dark:bg-zinc-900 border border-slate-200/60 dark:border-zinc-800 px-4 text-xs font-black text-slate-800 dark:text-zinc-200 hover:bg-slate-200 dark:hover:bg-zinc-800 transition hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
                   >
                     <Save className="size-4" />
                     Lưu cấu hình
@@ -715,7 +729,7 @@ export function SettingsTab({
                     'danger'
                   )
                 }}
-                className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl bg-rose-650 hover:bg-rose-700 text-white px-4 text-xs font-bold border border-transparent transition spring-transition hover:scale-[1.03] active:scale-[0.96] shrink-0 cursor-pointer"
+                className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white px-4 text-xs font-bold border border-transparent transition spring-transition hover:scale-[1.03] active:scale-[0.96] shrink-0 cursor-pointer"
               >
                 <Trash2 className="size-4" />
                 Xóa toàn bộ

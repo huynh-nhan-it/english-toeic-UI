@@ -147,7 +147,7 @@ Ensure the output is valid JSON matching the schema provided.`
     return parsedPassage
   } catch (parseErr) {
     console.error('Failed to parse Gemini JSON response:', parseErr, data)
-    throw new Error('Không thể phân tích dữ liệu đề bài sinh ra từ AI. Vui lòng thử lại.')
+    throw new Error('Không thể phân tích dữ liệu đề bài sinh ra từ AI. Vui lòng thử lại.', { cause: parseErr })
   }
 }
 
@@ -250,7 +250,7 @@ Ensure the output is a valid JSON array matching the schema provided.`
     }))
   } catch (parseErr) {
     console.error('Failed to parse Gemini JSON response:', parseErr, data)
-    throw new Error('Không thể phân tích dữ liệu câu hỏi ngữ pháp sinh ra từ AI. Vui lòng thử lại.')
+    throw new Error('Không thể phân tích dữ liệu câu hỏi ngữ pháp sinh ra từ AI. Vui lòng thử lại.', { cause: parseErr })
   }
 }
 
@@ -355,6 +355,6 @@ Ensure the output is a valid JSON array matching the schema provided.`
     return parsedCards
   } catch (parseErr) {
     console.error('Failed to parse Gemini JSON response:', parseErr, data)
-    throw new Error('Không thể phân tích dữ liệu từ vựng sinh ra từ AI. Vui lòng thử lại.')
+    throw new Error('Không thể phân tích dữ liệu từ vựng sinh ra từ AI. Vui lòng thử lại.', { cause: parseErr })
   }
 }

@@ -15,8 +15,8 @@ import {
 import { GRAMMAR_QUESTIONS, type GrammarQuestion } from '../lib/grammarDatabase'
 import { TOEIC_GRAMMAR_FORMULAS } from '../lib/toeic'
 import { ReadingPracticeSection } from './ReadingPracticeSection'
-import { generateAiGrammarQuestions } from '../lib/geminiApi'
-import type { FlashcardItem } from '../lib/toeic'
+import { generateAiGrammarQuestions } from '../services/gemini.service'
+import type { FlashcardItem } from '../types'
 import { CustomDialog } from './CustomDialog'
 
 type GrammarPracticeTabProps = {
@@ -26,7 +26,7 @@ type GrammarPracticeTabProps = {
   onOpenMobileMenu?: () => void
 }
 
-export function GrammarPracticeTab({ flashcards, apiKey, onCloseMobileMenu, onOpenMobileMenu }: GrammarPracticeTabProps) {
+export function GrammarPracticeTab({ apiKey, onCloseMobileMenu, onOpenMobileMenu }: GrammarPracticeTabProps) {
   // Segment state: part56 (Grammar MCQ) vs part7 (Reading Comprehension)
   const [activeSubSection, setActiveSubSection] = useState<'part56' | 'part7'>('part56')
 
@@ -38,7 +38,6 @@ export function GrammarPracticeTab({ flashcards, apiKey, onCloseMobileMenu, onOp
   const [isAnswered, setIsAnswered] = useState(false)
   const [elapsedTime, setElapsedTime] = useState(0)
   const [incorrectQuestionIds, setIncorrectQuestionIds] = useState<string[]>([])
-  const [isReviewingMistakes, setIsReviewingMistakes] = useState(false)
 
   // AI Generation States
   const [isLoading, setIsLoading] = useState(false)
@@ -69,9 +68,6 @@ export function GrammarPracticeTab({ flashcards, apiKey, onCloseMobileMenu, onOp
 
     if (mistakesOnly && incorrectQuestionIds.length > 0) {
       pool = GRAMMAR_QUESTIONS.filter((q) => incorrectQuestionIds.includes(q.id))
-      setIsReviewingMistakes(true)
-    } else {
-      setIsReviewingMistakes(false)
     }
 
     // Shuffle and pick 30 (or all if pool is smaller)
@@ -101,11 +97,11 @@ export function GrammarPracticeTab({ flashcards, apiKey, onCloseMobileMenu, onOp
     }
 
     setIsLoading(true)
+    setLoadingStep(0)
     setError(null)
     setSelectedAnswers({})
     setIsAnswered(false)
     setElapsedTime(0)
-    setIsReviewingMistakes(false)
 
     try {
       const aiQuestions = await generateAiGrammarQuestions(apiKey)
@@ -118,15 +114,15 @@ export function GrammarPracticeTab({ flashcards, apiKey, onCloseMobileMenu, onOp
       timerRef.current = window.setInterval(() => {
         setElapsedTime((prev) => prev + 1)
       }, 1000)
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err)
-      setError(err.message || 'Có lỗi xảy ra trong quá trình kết nối với Gemini AI.')
+      const errMsg = err instanceof Error ? err.message : 'Có lỗi xảy ra trong quá trình kết nối với Gemini AI.'
+      setError(errMsg)
     } finally {
       setIsLoading(false)
     }
   }, [apiKey])
 
-  // Dynamic loading steps for AI grammar generation
   useEffect(() => {
     if (!isLoading) return
     const steps = [
@@ -136,7 +132,6 @@ export function GrammarPracticeTab({ flashcards, apiKey, onCloseMobileMenu, onOp
       'Đang soạn thảo phần giải thích ngữ pháp chi tiết bằng tiếng Việt...'
     ]
 
-    setLoadingStep(0)
     const interval = setInterval(() => {
       setLoadingStep((prev) => (prev < steps.length - 1 ? prev + 1 : prev))
     }, 2500)
@@ -277,8 +272,6 @@ export function GrammarPracticeTab({ flashcards, apiKey, onCloseMobileMenu, onOp
       {activeSubSection === 'part7' ? (
         <div className="flex-1 min-h-0">
           <ReadingPracticeSection
-            flashcards={flashcards}
-            apiKey={apiKey}
             onCloseMobileMenu={onCloseMobileMenu}
             onOpenMobileMenu={onOpenMobileMenu}
           />
@@ -369,7 +362,7 @@ export function GrammarPracticeTab({ flashcards, apiKey, onCloseMobileMenu, onOp
                 </div>
               ) : quizState === 'idle' ? (
                 <div className="text-center rounded-3xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-8 shadow-sm space-y-6">
-                  <div className="mx-auto size-16 bg-indigo-100 dark:bg-emerald-500/10 rounded-full flex items-center justify-center text-indigo-650 dark:text-emerald-400">
+                  <div className="mx-auto size-16 bg-indigo-100 dark:bg-emerald-500/10 rounded-full flex items-center justify-center text-indigo-600 dark:text-emerald-400">
                     <Award className="size-8 animate-bounce" />
                   </div>
                   <div className="space-y-2">
@@ -423,7 +416,7 @@ export function GrammarPracticeTab({ flashcards, apiKey, onCloseMobileMenu, onOp
                         if (isCorrectOpt) {
                           buttonStyle = 'border-emerald-500 dark:border-emerald-400 bg-emerald-500/10 dark:bg-emerald-400/10 text-emerald-700 dark:text-emerald-400 font-bold'
                         } else if (isSelected) {
-                          buttonStyle = 'border-red-500 dark:border-red-450 bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400 font-bold'
+                          buttonStyle = 'border-red-500 dark:border-red-500 bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400 font-bold'
                         } else {
                           buttonStyle = 'border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-400 dark:text-zinc-400 opacity-60 cursor-default'
                         }
@@ -510,7 +503,7 @@ export function GrammarPracticeTab({ flashcards, apiKey, onCloseMobileMenu, onOp
                       {incorrectQuestionIds.length > 0 && (
                         <button
                           onClick={() => startQuiz(true)}
-                          className="flex h-10 items-center justify-center gap-1.5 rounded-xl border border-red-200 dark:border-red-500/20 bg-red-50 dark:bg-red-500/10 px-5 text-xs font-black text-red-650 dark:text-red-400 transition hover:scale-[1.02] active:scale-[0.98] cursor-pointer uppercase tracking-wider"
+                          className="flex h-10 items-center justify-center gap-1.5 rounded-xl border border-red-200 dark:border-red-500/20 bg-red-50 dark:bg-red-500/10 px-5 text-xs font-black text-red-600 dark:text-red-400 transition hover:scale-[1.02] active:scale-[0.98] cursor-pointer uppercase tracking-wider"
                         >
                           <RotateCcw className="size-3.5" />
                           Luyện câu sai ({incorrectQuestionIds.length})

@@ -12,20 +12,24 @@
     "lint": "eslint ."
   },
   "dependencies": {
+    "@tailwindcss/vite": "latest",
     "@vitejs/plugin-react": "latest",
-    "vite": "latest",
-    "typescript": "latest",
+    "canvas-confetti": "^1.9.4",
+    "framer-motion": "^12.42.0",
+    "lucide-react": "latest",
     "react": "latest",
     "react-dom": "latest",
     "tailwindcss": "latest",
-    "@tailwindcss/vite": "latest",
-    "lucide-react": "latest"
+    "typescript": "latest",
+    "vite": "latest",
+    "zustand": "^5.0.14"
   },
   "devDependencies": {
     "@eslint/js": "latest",
     "@testing-library/jest-dom": "latest",
     "@testing-library/react": "latest",
     "@testing-library/user-event": "latest",
+    "@types/canvas-confetti": "^1.9.0",
     "@types/react": "latest",
     "@types/react-dom": "latest",
     "eslint": "latest",

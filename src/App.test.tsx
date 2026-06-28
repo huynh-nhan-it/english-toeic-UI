@@ -1,8 +1,12 @@
-import { beforeEach, describe, expect, test, vi } from 'vitest'
+// vitest globals are injected via globals:true in vitest.config.ts
+// Do not import { describe, test, vi } from 'vitest' — it breaks Vitest 4.x worker context
+
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import App from './App'
 import { STORAGE_KEY } from './lib/storage'
+import { useToeicStore } from './store/useToeicStore'
+import { createExam } from './lib/toeic'
 
 function expectQuestionValue(questionNumber: number, expectedValue: string) {
   const questionEl = screen.getByLabelText(`Question ${questionNumber}`)
@@ -20,7 +24,29 @@ describe('TOEIC Progress SPA', () => {
     vi.useRealTimers()
     vi.restoreAllMocks()
     vi.unstubAllGlobals()
+
+    // Reset Zustand store to clean initial state for each test
+    act(() => {
+      useToeicStore.setState({
+        activeExamId: 'exam-1',
+        exams: [createExam('exam-1', 'TOEIC Test 1')],
+        flashcards: [],
+        cloudConfig: {
+          projectId: 'toeic-progress-web',
+          apiKey: '',
+          googleClientId: '',
+          enabled: true,
+          user: null,
+        },
+        geminiApiKey: '',
+        leitnerIntervals: undefined,
+      })
+    })
+    // Clear localStorage again because resetting the store state above triggers the subscriber and writes to localStorage
+    localStorage.clear()
   })
+
+
 
   test('loads 200 blank answers when localStorage is empty', () => {
     render(<App />)
@@ -57,6 +83,11 @@ describe('TOEIC Progress SPA', () => {
         updatedAt: '2026-05-24T00:00:00.000Z',
       }),
     )
+
+    // Rehydrate the store from the newly set localStorage before rendering
+    act(() => {
+      useToeicStore.getState().rehydrate()
+    })
 
     render(<App />)
 
@@ -137,7 +168,6 @@ describe('TOEIC Progress SPA', () => {
   })
 
   test('debounces notebook saves to localStorage', async () => {
-    const user = userEvent.setup()
     vi.useFakeTimers()
     render(<App />)
 
@@ -153,7 +183,7 @@ describe('TOEIC Progress SPA', () => {
     expect(localStorage.getItem(STORAGE_KEY)).toBeNull()
     
     await act(async () => {
-      vi.advanceTimersByTime(500)
+      vi.runAllTimers()
     })
 
     const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}')
@@ -196,7 +226,6 @@ describe('TOEIC Progress SPA', () => {
   })
 
   test('toggles TOEIC grammar formulas and saves selected options', async () => {
-    const user = userEvent.setup()
     vi.useFakeTimers()
     render(<App />)
 

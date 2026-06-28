@@ -3,7 +3,6 @@ import {
   createEmptyProgress,
   createExam,
   createBlankAnswers,
-  generateStudyCode,
   type AnswerChoice,
   type StudyNotes,
   type ToeicExam,
@@ -219,8 +218,8 @@ export function loadProgress(): ToeicProgressData {
       flashcards,
       cloudConfig,
       updatedAt: parsed.updatedAt ?? emptyProgress.updatedAt,
-      leitnerIntervals: Array.isArray((parsed as any).leitnerIntervals) ? (parsed as any).leitnerIntervals : undefined,
-      geminiApiKey: typeof (parsed as any).geminiApiKey === 'string' ? decryptKey((parsed as any).geminiApiKey) : undefined,
+      leitnerIntervals: Array.isArray((parsed as Record<string, unknown>).leitnerIntervals) ? ((parsed as Record<string, unknown>).leitnerIntervals as number[]) : undefined,
+      geminiApiKey: typeof (parsed as Record<string, unknown>).geminiApiKey === 'string' ? decryptKey((parsed as Record<string, unknown>).geminiApiKey as string) : undefined,
     }
   } catch {
     return emptyProgress

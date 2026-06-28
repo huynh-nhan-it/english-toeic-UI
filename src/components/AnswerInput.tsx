@@ -71,7 +71,7 @@ export const AnswerInput = memo(
                 className={`size-7 sm:size-8 flex items-center justify-center rounded-full text-[10px] sm:text-xs font-extrabold transition spring-transition cursor-pointer ${
                   isSelected
                     ? 'bg-indigo-600 bg-gradient-to-r from-violet-600 to-indigo-600 dark:from-violet-500 dark:to-indigo-500 text-white shadow-md shadow-indigo-500/20 choice-glow-active scale-105'
-                    : 'bg-slate-100 dark:bg-zinc-900/60 text-slate-700 dark:text-zinc-300 border border-slate-200/50 dark:border-zinc-800/80 hover:bg-slate-200 dark:hover:bg-zinc-800 hover:text-slate-900 dark:hover:text-white hover:border-slate-350 dark:hover:border-zinc-700'
+                    : 'bg-slate-100 dark:bg-zinc-900/60 text-slate-700 dark:text-zinc-300 border border-slate-200/50 dark:border-zinc-800/80 hover:bg-slate-200 dark:hover:bg-zinc-800 hover:text-slate-900 dark:hover:text-white hover:border-slate-300 dark:hover:border-zinc-700'
                 }`}
               >
                 {choice}

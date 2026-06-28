@@ -100,7 +100,7 @@ export function CustomDialog({
             <button
               type="button"
               onClick={onCancel}
-              className="w-full sm:w-auto px-5 py-2.5 rounded-2xl border border-slate-200 dark:border-zinc-850 hover:bg-slate-100 dark:hover:bg-zinc-900 text-slate-600 dark:text-zinc-400 font-black text-xs uppercase tracking-wider transition cursor-pointer order-2 sm:order-1"
+              className="w-full sm:w-auto px-5 py-2.5 rounded-2xl border border-slate-200 dark:border-zinc-800 hover:bg-slate-100 dark:hover:bg-zinc-900 text-slate-600 dark:text-zinc-400 font-black text-xs uppercase tracking-wider transition cursor-pointer order-2 sm:order-1"
             >
               {cancelText}
             </button>
