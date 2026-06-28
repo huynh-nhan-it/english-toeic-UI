@@ -8,6 +8,14 @@ import { STORAGE_KEY } from './lib/storage'
 import { useToeicStore } from './store/useToeicStore'
 import { createExam } from './lib/toeic'
 
+const MOCK_AUTH_USER = {
+  email: 'test@example.com',
+  uid: 'test-user-id',
+  idToken: 'test-token',
+  refreshToken: 'test-refresh',
+  expiresAt: Date.now() + 60 * 60 * 1000,
+}
+
 function expectQuestionValue(questionNumber: number, expectedValue: string) {
   const questionEl = screen.getByLabelText(`Question ${questionNumber}`)
   const selectedButton = questionEl.querySelector('.bg-indigo-600')
@@ -36,7 +44,7 @@ describe('TOEIC Progress SPA', () => {
           apiKey: '',
           googleClientId: '',
           enabled: true,
-          user: null,
+          user: MOCK_AUTH_USER,
         },
         geminiApiKey: '',
         leitnerIntervals: undefined,
@@ -79,7 +87,7 @@ describe('TOEIC Progress SPA', () => {
           updatedAt: '2026-05-24T00:00:00.000Z',
         }],
         flashcards: [],
-        cloudConfig: { projectId: 'toeic-progress-default', apiKey: '', enabled: false, user: null },
+        cloudConfig: { projectId: 'toeic-progress-default', apiKey: '', enabled: true, user: MOCK_AUTH_USER },
         updatedAt: '2026-05-24T00:00:00.000Z',
       }),
     )

@@ -1,6 +1,7 @@
-import { Sun, Moon, BookOpenCheck, BookOpen, Layers, GraduationCap, Settings, Sparkles } from 'lucide-react'
+import { Sun, Moon, BookOpenCheck, BookOpen, Layers, GraduationCap, Settings, Sparkles, LogOut } from 'lucide-react'
 import { useTheme } from '../ThemeContext'
-import { useToeicStore } from '../../store/useToeicStore'
+import { useToeicStore, useResolvedCloudConfig } from '../../store/useToeicStore'
+import { canSeeSettings } from '../../lib/auth'
 
 type TabType = 'practice' | 'notebook' | 'flashcards' | 'grammar' | 'ai-sandbox' | 'settings'
 
@@ -42,8 +43,9 @@ export function DesktopSidebar({
   children
 }: DesktopSidebarProps) {
   const { theme, toggleTheme } = useTheme()
-  const cloudConfig = useToeicStore((state) => state.cloudConfig)
-  const canSeeSettings = !cloudConfig.user || cloudConfig.user.email === 'nopecode684@gmail.com'
+  const cloudConfig = useResolvedCloudConfig()
+  const showSettingsTab = canSeeSettings(cloudConfig)
+  const onLogout = useToeicStore((state) => state.onLogout)
 
   const tabs = [
     { id: 'practice' as TabType, label: 'Luyện đề', icon: BookOpenCheck },
@@ -51,7 +53,7 @@ export function DesktopSidebar({
     { id: 'flashcards' as TabType, label: 'Từ vựng', icon: Layers },
     { id: 'grammar' as TabType, label: 'Ngữ pháp', icon: GraduationCap },
     { id: 'ai-sandbox' as TabType, label: 'Trợ lý AI', icon: Sparkles },
-    ...(canSeeSettings ? [{ id: 'settings' as TabType, label: 'Cài đặt', icon: Settings }] : []),
+    ...(showSettingsTab ? [{ id: 'settings' as TabType, label: 'Cài đặt', icon: Settings }] : []),
   ]
 
   return (
@@ -96,8 +98,21 @@ export function DesktopSidebar({
         {children}
       </div>
 
-      {/* Theme toggle */}
-      <div className="w-full px-4 shrink-0 mt-4">
+      {/* User & theme */}
+      <div className="w-full px-4 shrink-0 mt-4 space-y-1.5">
+        {cloudConfig.user?.email && (
+          <div className="px-3.5 py-2 rounded-xl bg-slate-100/70 dark:bg-zinc-900/50 border border-slate-200/50 dark:border-zinc-800/50">
+            <p className="text-[9px] font-black uppercase tracking-wider text-slate-400 dark:text-zinc-500">Đang đăng nhập</p>
+            <p className="text-[11px] font-bold text-slate-700 dark:text-zinc-300 truncate mt-0.5">{cloudConfig.user.email}</p>
+          </div>
+        )}
+        <button
+          onClick={onLogout}
+          className="flex items-center gap-3 w-full px-3.5 py-2.5 rounded-xl text-sm font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition spring-transition cursor-pointer"
+        >
+          <LogOut className="size-4.5" />
+          Đăng xuất
+        </button>
         <button
           onClick={toggleTheme}
           className="flex items-center gap-3 w-full px-3.5 py-2.5 rounded-xl text-sm font-semibold text-slate-500 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-800/40 hover:text-slate-900 dark:hover:text-zinc-200 transition spring-transition cursor-pointer"

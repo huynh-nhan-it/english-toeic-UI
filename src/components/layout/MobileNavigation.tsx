@@ -1,5 +1,6 @@
 import { BookOpenCheck, BookOpen, Layers, GraduationCap, Settings, Sparkles } from 'lucide-react'
-import { useToeicStore } from '../../store/useToeicStore'
+import { useResolvedCloudConfig } from '../../store/useToeicStore'
+import { canSeeSettings } from '../../lib/auth'
 
 type TabType = 'practice' | 'notebook' | 'flashcards' | 'grammar' | 'ai-sandbox' | 'settings'
 
@@ -9,8 +10,8 @@ type MobileNavigationProps = {
 }
 
 export function MobileNavigation({ activeTab, setActiveTab }: MobileNavigationProps) {
-  const cloudConfig = useToeicStore((state) => state.cloudConfig)
-  const canSeeSettings = !cloudConfig.user || cloudConfig.user.email === 'nopecode684@gmail.com'
+  const cloudConfig = useResolvedCloudConfig()
+  const showSettingsTab = canSeeSettings(cloudConfig)
 
   const tabs = [
     { id: 'practice' as TabType, label: 'Luyện đề', icon: BookOpenCheck },
@@ -18,7 +19,7 @@ export function MobileNavigation({ activeTab, setActiveTab }: MobileNavigationPr
     { id: 'flashcards' as TabType, label: 'Từ vựng', icon: Layers },
     { id: 'grammar' as TabType, label: 'Ngữ pháp', icon: GraduationCap },
     { id: 'ai-sandbox' as TabType, label: 'Trợ lý AI', icon: Sparkles },
-    ...(canSeeSettings ? [{ id: 'settings' as TabType, label: 'Cài đặt', icon: Settings }] : []),
+    ...(showSettingsTab ? [{ id: 'settings' as TabType, label: 'Cài đặt', icon: Settings }] : []),
   ]
 
   return (

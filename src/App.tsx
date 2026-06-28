@@ -17,11 +17,13 @@ import { MobileNavigation } from './components/layout/MobileNavigation'
 import { MobileDrawer } from './components/layout/MobileDrawer'
 import { FlashcardConfigPanel } from './components/flashcard/FlashcardConfigPanel'
 import { FlashcardGeneratorPanel } from './components/flashcard/FlashcardGeneratorPanel'
+import { AuthScreen } from './components/auth/AuthScreen'
 
 // Global Store & Configs
 import { useToeicStore, useActiveExam, useResolvedCloudConfig, useResolvedGeminiApiKey } from './store/useToeicStore'
 import { ThemeProvider } from './components/ThemeContext'
 import { TOEIC_GRAMMAR_FORMULAS, GRAMMAR_VIETNAMESE_TITLES, COLLO_VIETNAMESE_TITLES } from './lib/toeic'
+import { isAuthenticated, canSeeSettings } from './lib/auth'
 import type { StudyNotes } from './types'
 
 type TabType = 'practice' | 'notebook' | 'flashcards' | 'grammar' | 'ai-sandbox' | 'settings'
@@ -249,11 +251,9 @@ function AppContent() {
     })
   }, [activeExam, updateActiveExamNotes])
 
-  const canSeeSettings = !cloudConfig.user || cloudConfig.user.email === 'nopecode684@gmail.com'
+  const showSettingsTab = canSeeSettings(cloudConfig)
 
-  // Derive the effective tab: if the user has no access to settings, fall back to 'practice'.
-  // This is pure derivation during render — no effect or setState needed.
-  const visibleTab: TabType = activeTab === 'settings' && !canSeeSettings ? 'practice' : activeTab
+  const visibleTab: TabType = activeTab === 'settings' && !showSettingsTab ? 'practice' : activeTab
 
   const shouldShowHamburger =
     visibleTab === 'practice' ||
@@ -295,6 +295,20 @@ function AppContent() {
     grammar: 'Ngữ pháp',
     'ai-sandbox': 'Trợ lý AI',
     settings: 'Cài đặt',
+  }
+
+  if (!isAuthenticated(cloudConfig)) {
+    return (
+      <>
+        <AuthScreen
+          cloudConfig={cloudConfig}
+          onLogin={onLogin}
+          onRegister={onRegister}
+          onLoginWithGoogle={onLoginWithGoogle}
+        />
+        <ToastContainer />
+      </>
+    )
   }
 
   return (
@@ -469,12 +483,9 @@ function AppContent() {
             <AiSandboxTab />
           )}
 
-          {visibleTab === 'settings' && (
+          {visibleTab === 'settings' && showSettingsTab && (
             <SettingsTab
               cloudConfig={cloudConfig}
-              onLogin={onLogin}
-              onRegister={onRegister}
-              onLoginWithGoogle={onLoginWithGoogle}
               onLogout={onLogout}
               onSaveCloudConfig={saveCloudConfig}
               onClearData={clearData}
